@@ -2,6 +2,30 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://domain/gim/stable/</loc>
-         <lastmod>2025-06-23</lastmod>
+         <lastmod>2025-06-24</lastmod>
+    </url>
+    <url>
+         <loc>https://domain/gim/stable/ai/</loc>
+         <lastmod>2025-06-24</lastmod>
+    </url>
+    <url>
+         <loc>https://domain/gim/stable/cli/</loc>
+         <lastmod>2025-06-24</lastmod>
+    </url>
+    <url>
+         <loc>https://domain/gim/stable/contribute/</loc>
+         <lastmod>2025-06-24</lastmod>
+    </url>
+    <url>
+         <loc>https://domain/gim/stable/installation/</loc>
+         <lastmod>2025-06-24</lastmod>
+    </url>
+    <url>
+         <loc>https://domain/gim/stable/prompt/</loc>
+         <lastmod>2025-06-24</lastmod>
+    </url>
+    <url>
+         <loc>https://domain/gim/stable/update/</loc>
+         <lastmod>2025-06-24</lastmod>
     </url>
 </urlset>
