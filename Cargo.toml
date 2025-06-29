@@ -1,6 +1,6 @@
 [package]
 name = "git-intelligence-message"
-version = "1.5.0"
+version = "1.6.0"
 edition = "2021"
 description = "An advanced Git commit message generation utility with AI assistance"
 authors = ["Sheldon.Wei<sheldon.sh.hb@gmail.com>"]
@@ -20,7 +20,7 @@ panic = "abort"
 rustflags = ["-C", "target-feature=+crt-static"]
 
 [dependencies]
-gim-config = "0.4.0"
+gim-config = "0.5.0"
 clap = { version = "4.4", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

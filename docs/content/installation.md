@@ -11,7 +11,25 @@ or
 brew install davelet/gim/git-intelligence-message
 ```
 
-## Using Cargo
+## Using Scoop (Windows)
+
+```bash
+scoop bucket add davelet https://github.com/davelet/scoop-bucket.git
+scoop install git-intelligence-message
+```
+
+## Using Chocolatey (Windows)
+
+```bash
+choco install git-intelligence-message
+```
+
+## Downloading the Executable (Windows)
+
+You can download the pre-built executable (gim.exe) from the [Releases](https://github.com/davelet/git-intelligence-message/releases) page.
+
+
+## Using Cargo (Windows/Linux/macOS)
 
 ```bash
 cargo install git-intelligence-message
