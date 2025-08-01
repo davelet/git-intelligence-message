@@ -100,7 +100,7 @@ pub async fn chat(
             url = str;
         } else {
             eprintln!("Error: please setup ai url first");
-            std::process::exit(1); 
+            std::process::exit(1);
         }
     }
 

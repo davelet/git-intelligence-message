@@ -88,6 +88,6 @@ pub enum GimCommands {
 
         /// Print config file's location
         #[arg(long, default_value_t = false)]
-        show_location: bool
-    }
+        show_location: bool,
+    },
 }

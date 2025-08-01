@@ -1,7 +1,7 @@
 use gim_config::config;
 use std::io::ErrorKind;
 use std::io::Result;
-use toml::{map::Map, Value};
+use toml::{Value, map::Map};
 
 use crate::{
     cli::verbose::print_verbose,
@@ -51,6 +51,9 @@ pub fn set_lines_limit(lines_limit: usize) -> Result<()> {
         }
         return Err(e);
     }
-    println!("set custom config '{}' done, value: {:?}", NAME, lines_limit);
+    println!(
+        "set custom config '{}' done, value: {:?}",
+        NAME, lines_limit
+    );
     Ok(())
 }
