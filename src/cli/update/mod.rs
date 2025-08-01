@@ -45,6 +45,20 @@ pub fn check_update_reminder() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+/// Asynchronous version of check_update_reminder that can be run in background
+/// without blocking the main program execution.
+pub async fn check_update_reminder_async() {
+    tokio::task::spawn_blocking(|| {
+        if let Err(e) = check_update_reminder() {
+            print_verbose(&format!("Warning: {}", e));
+        }
+    })
+    .await
+    .unwrap_or_else(|e| {
+        print_verbose(&format!("Warning: Failed to check for updates: {}", e));
+    });
+}
+
 fn new_version_available() -> Result<(bool, Version, Version), Box<dyn std::error::Error>> {
     let current_version = VERSION;
     let current = semver::Version::parse(current_version)
@@ -123,8 +137,13 @@ fn get_latest_version_by_scoop() -> Result<Version, Box<dyn std::error::Error>> 
 
     if !status_output.status.success() {
         // If status command fails, try to get info about the package
-        let info_output = Command::new(scoop_exe).args(["info", REPOSITORY]).output()?;
-        print_verbose(&format!("[I'm TRYing] run '{} info {}'", scoop_exe, REPOSITORY));
+        let info_output = Command::new(scoop_exe)
+            .args(["info", REPOSITORY])
+            .output()?;
+        print_verbose(&format!(
+            "[I'm TRYing] run '{} info {}'",
+            scoop_exe, REPOSITORY
+        ));
 
         if !info_output.status.success() {
             return Err("Failed to fetch version information from Scoop".into());
@@ -158,19 +177,28 @@ fn get_latest_version_by_scoop() -> Result<Version, Box<dyn std::error::Error>> 
         if line.contains(REPOSITORY) {
             // Extract version from status output
             // Typical format: "package_name: 1.0.0 -> 1.1.0"
-            if let Some(arrow_pos) = line.find(" -> ") {
-                let latest_version = line[arrow_pos + 4..].trim().trim_start_matches('v');
-
-                let latest = semver::Version::parse(latest_version)
-                    .map_err(|_| format!("Invalid version format in status: {}", latest_version))?;
-                return Ok(latest);
-            }
+            let latest_version = if let Some(arrow_pos) = line.find(" -> ") {
+                line[arrow_pos + 4..].trim().trim_start_matches('v')
+            } else {
+                // Typical format: "package_name 1.0.0  1.1.0"
+                line.split_whitespace()
+                    .nth(2)
+                    .ok_or(format!("Unknown version format in status: '{}'", line))?
+            };
+            let latest = semver::Version::parse(latest_version)
+                .map_err(|_| format!("Invalid version format in status: {}", latest_version))?;
+            return Ok(latest);
         }
     }
 
     // If no update found in status, get current version from info
-    let info_output = Command::new(scoop_exe).args(["info", REPOSITORY]).output()?;
-    print_verbose(&format!("[CHECK DONE] run '{} info {}'", scoop_exe, REPOSITORY));
+    let info_output = Command::new(scoop_exe)
+        .args(["info", REPOSITORY])
+        .output()?;
+    print_verbose(&format!(
+        "[CHECK DONE] run '{} info {}'",
+        scoop_exe, REPOSITORY
+    ));
 
     if !info_output.status.success() {
         return Err("Failed to fetch version information from Scoop".into());
