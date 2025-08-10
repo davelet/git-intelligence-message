@@ -38,7 +38,7 @@ pub fn check_update_reminder() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
-    print_verbose(&format!("End checking new version"));
+    print_verbose("End checking new version");
     Ok(())
 }
 
@@ -47,8 +47,11 @@ fn new_version_available() -> Result<(bool, Version, Version), Box<dyn std::erro
     let current = semver::Version::parse(current_version)
         .map_err(|_| format!("Invalid current version format: {}", current_version))?;
     let latest = get_latest_version_by_homebrew()?;
-    print_verbose(&format!("Local version: {}; Remote Version: {}", current, latest));
-    Ok((&latest > &current, current, latest))
+    print_verbose(&format!(
+        "Local version: {}; Remote Version: {}",
+        current, latest
+    ));
+    Ok((latest > current, current, latest))
 }
 
 /// Gets the latest version from Homebrew
@@ -79,7 +82,6 @@ fn get_latest_version_by_homebrew() -> Result<Version, Box<dyn std::error::Error
         .map_err(|_| format!("Invalid version format in release: {}", latest_version))?;
     Ok(latest)
 }
-
 
 pub async fn check_and_install_update(force: bool) -> Result<(), Box<dyn std::error::Error>> {
     print_verbose("Checking for updates via Homebrew...");
@@ -134,11 +136,7 @@ pub async fn check_and_install_update(force: bool) -> Result<(), Box<dyn std::er
 ///
 /// Returns `Ok(())` if the configuration was updated successfully, or an error if the update failed.
 pub fn set_max_try(max_try: u32) -> Result<(), Box<dyn std::error::Error>> {
-    update_config_value(
-        "update",
-        "max_try",
-        Value::Integer(max_try as i64),
-    )?;
+    update_config_value("update", "max_try", Value::Integer(max_try as i64))?;
     print_verbose(&format!("Successfully set max try count to: {}", max_try));
     Ok(())
 }
@@ -158,7 +156,10 @@ pub fn set_try_interval(interval: u32) -> Result<(), Box<dyn std::error::Error>>
         "try_interval_days",
         Value::Integer(interval as i64),
     )?;
-    print_verbose(&format!("Successfully set try interval to: {} days", interval));
+    print_verbose(&format!(
+        "Successfully set try interval to: {} days",
+        interval
+    ));
     Ok(())
 }
 
@@ -168,8 +169,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_update() {
-        let updated = check_and_install_update(false).await;
-        assert!(updated.is_ok(), "update failed (test)");
+        // This test requires Homebrew and is only relevant on macOS.
+        // It will fail on other platforms where `brew` command is not available.
+        // To run this test, ensure you are on macOS with Homebrew installed
+        // and the package is installed via Homebrew.
+        if cfg!(target_os = "macos") {
+            let updated = check_and_install_update(false).await;
+            assert!(updated.is_ok(), "update failed (test)");
+        }
+        // Test is skipped on non-macOS platforms.
     }
 
     #[test]

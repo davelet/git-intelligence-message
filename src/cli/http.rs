@@ -100,8 +100,11 @@ pub async fn chat(
             url = str;
         } else {
             eprintln!("Error: please setup ai url first");
-            std::process::exit(1); 
+            std::process::exit(1);
         }
+    } else {
+        // If user provided a base URL, construct the full URL
+        url = construct_full_url(&url);
     }
 
     if log_info {
@@ -151,40 +154,68 @@ pub async fn chat(
 /// * `None` if the model is not recognized.
 pub fn get_url_by_model(model_name: &str) -> Option<String> {
     if model_name.starts_with("moonshot") {
-        return Some(crate::constants::MONOSHOT_URL.to_string());
+        return Some(format!("{}{}", crate::constants::MOONSHOT_BASE_URL, crate::constants::DEFAULT_CHAT_COMPLETIONS_PATH));
     }
     if model_name.starts_with("qwen") {
-        return Some(crate::constants::QWEN_URL.to_string());
+        return Some(format!("{}{}", crate::constants::QWEN_BASE_URL, crate::constants::QWEN_CHAT_COMPLETIONS_PATH));
     }
     if model_name.starts_with("gpt") {
-        return Some(crate::constants::GPT_URL.to_string());
+        return Some(format!("{}{}", crate::constants::GPT_BASE_URL, crate::constants::DEFAULT_CHAT_COMPLETIONS_PATH));
     }
     if model_name.starts_with("gemini") {
-        return Some(crate::constants::GEMINI_URL.to_string());
+        return Some(format!("{}{}", crate::constants::GEMINI_BASE_URL, crate::constants::GEMINI_CHAT_COMPLETIONS_PATH));
     }
     if model_name.starts_with("doubao") {
-        return Some(crate::constants::DOUBAO_URL.to_string());
+        return Some(format!("{}{}", crate::constants::DOUBAO_BASE_URL, crate::constants::DOUBAO_CHAT_COMPLETIONS_PATH));
     }
     if model_name.starts_with("glm") {
-        return Some(crate::constants::GLM_URL.to_string());
+        return Some(format!("{}{}", crate::constants::GLM_BASE_URL, crate::constants::GLM_CHAT_COMPLETIONS_PATH));
     }
     if model_name.starts_with("deepseek") {
-        return Some(crate::constants::DEEPSEEK_URL.to_string());
+        return Some(format!("{}{}", crate::constants::DEEPSEEK_BASE_URL, crate::constants::DEFAULT_CHAT_COMPLETIONS_PATH));
     }
     if model_name.starts_with("qianfan") {
-        return Some(crate::constants::QIANFAN_URL.to_string());
+        return Some(format!("{}{}", crate::constants::QIANFAN_BASE_URL, crate::constants::QIANFAN_CHAT_COMPLETIONS_PATH));
     }
     None
 }
 
+/// Constructs a full URL by combining a base URL with the default chat completions path.
+/// Handles various cases where the base URL may already include parts of the path.
+///
+/// # Arguments
+///
+/// * `base_url` - The base URL provided by the user.
+///
+/// # Returns
+///
+/// * `String` containing the full URL.
+pub fn construct_full_url(base_url: &str) -> String {
+    // Remove trailing slash from base URL if present
+    let trimmed_base = base_url.trim_end_matches('/');
+    
+    // Check if the base URL already contains the full chat completions path
+    if trimmed_base.ends_with("/v1/chat/completions") {
+        return trimmed_base.to_string();
+    }
+    
+    // Check if the base URL ends with /v1, in which case we only need to add /chat/completions
+    if trimmed_base.ends_with("/v1") {
+        return format!("{}{}", trimmed_base, "/chat/completions");
+    }
+    
+    // Add the default path if not already present
+    format!("{}{}", trimmed_base, crate::constants::DEFAULT_CHAT_COMPLETIONS_PATH)
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::cli::http::chat;
+    use crate::cli::http::{chat, construct_full_url};
 
     #[tokio::test]
     async fn test_chat_success() {
         let result = chat(
-            crate::constants::QWEN_URL.into(),
+            format!("{}{}", crate::constants::QWEN_BASE_URL, crate::constants::QWEN_CHAT_COMPLETIONS_PATH),
             "qwen2.5-0.5b-instruct".into(),
             "sk-".into(),
             Some("You are a helpful assistant.".to_string()),
@@ -197,5 +228,38 @@ mod tests {
         } else {
             println!("模型回复: {}", result.unwrap());
         }
+    }
+
+    #[test]
+    fn test_construct_full_url() {
+        // Test with base URL without any path
+        assert_eq!(
+            construct_full_url("https://api.openai.com"),
+            "https://api.openai.com/v1/chat/completions"
+        );
+        
+        // Test with base URL ending with /v1
+        assert_eq!(
+            construct_full_url("https://api.openai.com/v1"),
+            "https://api.openai.com/v1/chat/completions"
+        );
+        
+        // Test with base URL already containing the full path
+        assert_eq!(
+            construct_full_url("https://api.openai.com/v1/chat/completions"),
+            "https://api.openai.com/v1/chat/completions"
+        );
+        
+        // Test with base URL ending with trailing slash
+        assert_eq!(
+            construct_full_url("https://api.openai.com/"),
+            "https://api.openai.com/v1/chat/completions"
+        );
+        
+        // Test with base URL ending with /v1 and trailing slash
+        assert_eq!(
+            construct_full_url("https://api.openai.com/v1/"),
+            "https://api.openai.com/v1/chat/completions"
+        );
     }
 }

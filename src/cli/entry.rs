@@ -37,7 +37,7 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
                 }
                 'max: {
                     if let Some(max) = max {
-                        if *max <= 0 {
+                        if *max == 0 {
                             eprintln!("Error: --max must be a positive integer");
                             break 'max;
                         }
@@ -49,7 +49,7 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
                 }
                 'interval: {
                     if let Some(interval) = interval {
-                        if *interval <= 0 {
+                        if *interval == 0 {
                             eprintln!("Error: --interval must be a positive integer");
                             break 'interval;
                         }
@@ -61,11 +61,9 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
                         }
                     }
                 }
-            } else {
-                if let Err(e) = crate::cli::update::check_and_install_update(*force).await {
-                    eprintln!("Failed to update: {}", e);
-                    std::process::exit(1);
-                }
+            } else if let Err(e) = crate::cli::update::check_and_install_update(*force).await {
+                eprintln!("Failed to update: {}", e);
+                std::process::exit(1);
             }
             return;
         }
@@ -145,11 +143,11 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
                     eprintln!("Error: {}", e);
                 }
             }
-            if let Some(lines_limit) = lines_limit {
-                if let Err(e) = super::custom_param::set_lines_limit(*lines_limit) {
-                    eprintln!("Error: {}", e);
-                    std::process::exit(1);
-                }
+            if let Some(lines_limit) = lines_limit
+                && let Err(e) = super::custom_param::set_lines_limit(*lines_limit)
+            {
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
             }
             return;
         }
@@ -233,7 +231,7 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
             // Add file status information (including deleted files)
             let status_info = String::from_utf8_lossy(&diff_output.stdout);
             diff_content.push_str(&status_info);
-            diff_content.push_str("\n");
+            diff_content.push('\n');
 
             // Add full diff content only for added/modified files
             if !full_diff_output.stdout.is_empty() {
@@ -241,7 +239,7 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
                     "\nDetailed changes for added/modified files (excluding deleted files):\n",
                 );
                 diff_content.push_str(&String::from_utf8_lossy(&full_diff_output.stdout));
-                diff_content.push_str("\n");
+                diff_content.push('\n');
             }
         }
     }
@@ -267,13 +265,13 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
         // Add file status information (including deleted files)
         let status_info = String::from_utf8_lossy(&show_status_output.stdout);
         diff_content.push_str(&status_info);
-        diff_content.push_str("\n");
+        diff_content.push('\n');
 
         // Add full diff content only for added/modified files
         if !show_diff_output.stdout.is_empty() {
             diff_content.push_str("\nDetailed changes for added/modified files in last commit (excluding deleted files):\n");
             diff_content.push_str(&String::from_utf8_lossy(&show_diff_output.stdout));
-            diff_content.push_str("\n");
+            diff_content.push('\n');
         }
         println!("As '-p' option is enabled, I will amend the last commit message");
     }
@@ -295,7 +293,7 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
         std::process::exit(1);
     }
 
-    let config_result = get_validated_ai_config(cli.auto_add, changes.len() > 0);
+    let config_result = get_validated_ai_config(cli.auto_add, !changes.is_empty());
     if config_result.is_none() {
         return;
     }
@@ -318,7 +316,10 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
     )
     .await;
     if let Err(e) = res {
-        ai_generating_error(&format!("Error: {}", e), cli.auto_add && changes.len() > 0);
+        ai_generating_error(
+            &format!("Error: {}", e),
+            cli.auto_add && !changes.is_empty(),
+        );
         return;
     }
     let file_changes = res.unwrap();
@@ -433,25 +434,29 @@ fn handle_prompt_command(
             } else {
                 // Open the directory with default file manager
                 if cfg!(target_os = "macos") {
-                    Command::new("open")
+                    if let Err(e) = Command::new("open")
                         .arg("-R") // Reveal in Finder
                         .arg(&file_path)
-                        .status()?;
-                } else if cfg!(target_os = "windows") {
-                    Command::new("explorer")
-                        .arg("/select,")
-                        .arg(&file_path)
-                        .status()?;
-                } else {
-                    // Linux and others
-                    if let Err(_) = Command::new("xdg-open")
-                        .arg(file_path.parent().unwrap_or_else(|| ".".as_ref()))
                         .status()
                     {
-                        return Err(
-                            "Failed to open file manager. Please specify an editor with --editor"
-                                .into(),
-                        );
+                        eprintln!("Failed to open file in Finder: {}", e);
+                    }
+                } else if cfg!(target_os = "windows") {
+                    if let Err(e) = Command::new("explorer")
+                        .arg("/select,")
+                        .arg(&file_path)
+                        .status()
+                    {
+                        eprintln!("Failed to open file in Explorer: {}", e);
+                    }
+                } else {
+                    // Linux and others
+                    if Command::new("xdg-open")
+                        .arg(file_path.parent().unwrap_or_else(|| ".".as_ref()))
+                        .status()
+                        .is_err()
+                    {
+                        eprintln!("Failed to open file manager. Please specify an editor with --editor");
                     }
                 }
             }
@@ -490,15 +495,27 @@ fn open_config_directory() -> Result<(), Box<dyn std::error::Error>> {
     let config_dir = directory::config_dir()?;
     // Open the directory with default file manager
     if cfg!(target_os = "macos") {
-        Command::new("open")
-            // .arg("-R") // Reveal in Finder
+        if let Err(e) = Command::new("open")
             .arg(&config_dir)
-            .status()?;
+            .status()
+        {
+            eprintln!("Failed to open config directory in Finder: {}", e);
+        }
     } else if cfg!(target_os = "windows") {
-        Command::new("explorer").arg(&config_dir).status()?;
+        if let Err(e) = Command::new("explorer")
+            .arg(&config_dir)
+            .status()
+        {
+            eprintln!("Failed to open config directory in Explorer: {}", e);
+        }
     } else {
         // Linux and others
-        Command::new("xdg-open").arg(&config_dir).status()?;
+        if let Err(e) = Command::new("xdg-open")
+            .arg(&config_dir)
+            .status()
+        {
+            eprintln!("Failed to open config directory: {}", e);
+        }
     }
     Ok(())
 }

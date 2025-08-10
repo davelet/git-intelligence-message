@@ -13,6 +13,23 @@ If you find any issues, please report them to me. I will do my best to fix them 
 
 I look forward to hearing your feedback. Feel free to fire feature request or bug issue if you want and necessary: [Issues](https://github.com/davelet/git-intelligence-message/issues/new).
 
-> This project is currently macOS-only. Contributions to support other platforms (Windows, Linux, etc.) are highly welcome and appreciated.
+## Platform Support
+
+This project now officially supports multiple platforms:
+- Windows (7 and later)
+- macOS (10.12 and later)
+- Linux (most distributions)
+
+The application has been tested on these platforms and should work without issues. If you encounter any platform-specific problems, please [report them](https://github.com/davelet/git-intelligence-message/issues/new).
+
+## AI Provider URL Configuration
+
+When configuring the AI provider URL, you can now simply provide the base URL without the full path. The application will automatically append the appropriate path based on the provider:
+
+- For OpenAI: `https://api.openai.com` (automatically becomes `https://api.openai.com/v1/chat/completions`)
+- For providers with base URL ending in `/v1`: `https://api.provider.com/v1` (automatically becomes `https://api.provider.com/v1/chat/completions`)
+- For providers with full URL: `https://api.provider.com/v1/chat/completions` (used as-is)
+
+This simplifies configuration and makes it more intuitive for users.
 
 Thank you for your interest in this project.

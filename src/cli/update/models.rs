@@ -22,5 +22,5 @@ pub struct BrewInstalled {
 
 #[derive(Debug, Deserialize)]
 pub struct BrewInfo {
-    pub formulae: Vec<BrewFormulae>
+    pub formulae: Vec<BrewFormulae>,
 }
