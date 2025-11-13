@@ -67,8 +67,8 @@ pub enum GimCommands {
         #[arg(short, long)]
         model: Option<String>,
 
-        /// the ai api key
-        #[arg(short = 'k', long)]
+        /// the ai api key (use -k without value to view current key)
+        #[arg(short = 'k', long, num_args = 0..=1, default_missing_value = "")]
         apikey: Option<String>,
 
         /// the ai api url

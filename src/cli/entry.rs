@@ -100,6 +100,21 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
             url,
             language,
         }) => {
+            // Check if -k is used without a value (empty string means flag was provided but no value)
+            if let Some(apikey_val) = apikey {
+                if apikey_val.is_empty() {
+                    // User ran: gim ai -k (without value)
+                    // Show current API key (full, not masked)
+                    let ai = get_validated_ai_config(false, false);
+                    if let Some(ai) = ai {
+                        println!("Current API Key: {}", &ai.2);
+                    } else {
+                        eprintln!("Error: ai section is not configured");
+                    }
+                    return;
+                }
+            }
+
             if model.is_none() && apikey.is_none() && url.is_none() && language.is_none() {
                 let ai = get_validated_ai_config(false, false);
                 if let Some(ai) = ai {
@@ -111,6 +126,7 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
                             eprintln!("Warning: you have not setup api url by 'gim ai -u <url>'");
                         }
                     }
+                    let masked_key = mask_api_key(&ai.2);
                     printdoc!(
                         r#"
                         Model:      {}
@@ -120,7 +136,7 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
                         You can use 'gim ai -m <model> -k <apikey> -u <url> -l <language>' respectively to update the configuration
                         "#,
                         &ai.1,
-                        &ai.2,
+                        &masked_key,
                         &url,
                         &ai.3
                     );
@@ -507,6 +523,14 @@ fn ai_generating_error(abort: &str, auto_add: bool) {
     eprintln!("{}", abort);
     if auto_add {
         println!("Noted: your changes are added to git staged area");
+    }
+}
+
+fn mask_api_key(api_key: &str) -> String {
+    if api_key.len() <= 8 {
+        "***".to_string()
+    } else {
+        format!("{}***", &api_key[..8])
     }
 }
 

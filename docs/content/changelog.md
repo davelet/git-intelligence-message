@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.7.3] - 2025-11-13
+
+- Enhanced `gim ai` command:
+  - `gim ai` now displays masked API key (first 8 characters + `***`)
+  - `gim ai -k` without value showing current complete key
+
 ## [1.7.0] - 2025-08-01
 
 - Added `--show-location` flag to command `config` to show config file location
