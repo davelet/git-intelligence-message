@@ -100,7 +100,7 @@ pub async fn chat(
             url = str;
         } else {
             eprintln!("Error: please setup ai url first");
-            std::process::exit(1); 
+            std::process::exit(1);
         }
     }
 
@@ -108,7 +108,7 @@ pub async fn chat(
         println!("ai request url: {}", url);
     }
 
-    // 发送请求
+    // Send request
     let client = reqwest::Client::new();
     let response = client
         .post(url)
@@ -193,9 +193,9 @@ mod tests {
         )
         .await;
         if result.is_err() {
-            println!("模型报错: {}", result.unwrap_err());
+            println!("Model error: {}", result.unwrap_err());
         } else {
-            println!("模型回复: {}", result.unwrap());
+            println!("Model response: {}", result.unwrap());
         }
     }
 }

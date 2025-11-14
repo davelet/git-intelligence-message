@@ -12,6 +12,8 @@ gim ai --model "your-model-name"
 
 # Set API key
 gim ai --apikey "your-api-key"
+# if you didn't provide any text, it outputs current api key:
+gim ai -k
 
 # Define API endpoint
 gim ai --url "your-api-url"
@@ -19,7 +21,7 @@ gim ai --url "your-api-url"
 # Set output language
 gim ai --language "your-language"
 
-# print current configuration
+# print current configuration (with masked api key)
 gim ai
 ```
 

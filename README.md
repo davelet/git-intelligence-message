@@ -13,6 +13,4 @@ If you find any issues, please report them to me. I will do my best to fix them 
 
 I look forward to hearing your feedback. Feel free to fire feature request or bug issue if you want and necessary: [Issues](https://github.com/davelet/git-intelligence-message/issues/new).
 
-> This project is currently macOS-only. Contributions to support other platforms (Windows, Linux, etc.) are highly welcome and appreciated.
-
 Thank you for your interest in this project.

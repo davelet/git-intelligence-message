@@ -22,6 +22,10 @@ pub struct GimCli {
     /// Show verbose output
     #[arg(short, long, default_value_t = false)]
     pub verbose: bool,
+
+    /// Dry run: only print the content to be sent to AI, do not actually send or commit
+    #[arg(long, default_value_t = false)]
+    pub dry: bool,
 }
 
 /// Enum representing all supported subcommands for the gim CLI.
@@ -67,8 +71,8 @@ pub enum GimCommands {
         #[arg(short, long)]
         model: Option<String>,
 
-        /// the ai api key
-        #[arg(short = 'k', long)]
+        /// the ai api key (use -k without value to view current key)
+        #[arg(short = 'k', long, num_args = 0..=1, default_missing_value = "")]
         apikey: Option<String>,
 
         /// the ai api url
@@ -88,6 +92,6 @@ pub enum GimCommands {
 
         /// Print config file's location
         #[arg(long, default_value_t = false)]
-        show_location: bool
-    }
+        show_location: bool,
+    },
 }

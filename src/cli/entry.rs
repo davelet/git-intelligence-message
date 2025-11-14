@@ -100,6 +100,21 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
             url,
             language,
         }) => {
+            // Check if -k is used without a value (empty string means flag was provided but no value)
+            if let Some(apikey_val) = apikey {
+                if apikey_val.is_empty() {
+                    // User ran: gim ai -k (without value)
+                    // Show current API key (full, not masked)
+                    let ai = get_validated_ai_config(false, false);
+                    if let Some(ai) = ai {
+                        println!("Current API Key: {}", &ai.2);
+                    } else {
+                        eprintln!("Error: ai section is not configured");
+                    }
+                    return;
+                }
+            }
+
             if model.is_none() && apikey.is_none() && url.is_none() && language.is_none() {
                 let ai = get_validated_ai_config(false, false);
                 if let Some(ai) = ai {
@@ -111,6 +126,7 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
                             eprintln!("Warning: you have not setup api url by 'gim ai -u <url>'");
                         }
                     }
+                    let masked_key = mask_api_key(&ai.2);
                     printdoc!(
                         r#"
                         Model:      {}
@@ -120,7 +136,7 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
                         You can use 'gim ai -m <model> -k <apikey> -u <url> -l <language>' respectively to update the configuration
                         "#,
                         &ai.1,
-                        &ai.2,
+                        &masked_key,
                         &url,
                         &ai.3
                     );
@@ -232,7 +248,19 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
 
             // Add file status information (including deleted files)
             let status_info = String::from_utf8_lossy(&diff_output.stdout);
-            diff_content.push_str(&status_info);
+            for line in status_info.lines() {
+                if let Some((status, filename)) = line.split_once('\t') {
+                    if status == "D" {
+                        diff_content.push_str(&format!("Deleted: {}\n", filename));
+                    } else {
+                        diff_content.push_str(line);
+                        diff_content.push('\n');
+                    }
+                } else {
+                    diff_content.push_str(line);
+                    diff_content.push('\n');
+                }
+            }
             diff_content.push_str("\n");
 
             // Add full diff content only for added/modified files
@@ -264,12 +292,24 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
             .expect("Failed to get git show --diff-filter=AM");
         print_verbose("Run 'git show --pretty=format: --diff-filter=AM HEAD'");
 
-        // Add file status information (including deleted files)
+        // Parse name-status, only output filename for deleted files
         let status_info = String::from_utf8_lossy(&show_status_output.stdout);
-        diff_content.push_str(&status_info);
+        for line in status_info.lines() {
+            if let Some((status, filename)) = line.split_once('\t') {
+                if status == "D" {
+                    diff_content.push_str(&format!("Deleted: {}\n", filename));
+                } else {
+                    diff_content.push_str(line);
+                    diff_content.push('\n');
+                }
+            } else {
+                diff_content.push_str(line);
+                diff_content.push('\n');
+            }
+        }
         diff_content.push_str("\n");
 
-        // Add full diff content only for added/modified files
+        // Append detailed diff only for added/modified files
         if !show_diff_output.stdout.is_empty() {
             diff_content.push_str("\nDetailed changes for added/modified files in last commit (excluding deleted files):\n");
             diff_content.push_str(&String::from_utf8_lossy(&show_diff_output.stdout));
@@ -279,6 +319,12 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
     }
     if diff_content.is_empty() {
         println!("No changes found. To override last commit message, please use '-p' option");
+        return;
+    }
+
+    // INSERT DRY-RUN LOGIC HERE
+    if cli.dry {
+        println!("\n--- DRY RUN ---\nContent to be sent to AI:\n{}", diff_content);
         return;
     }
 
@@ -510,6 +556,14 @@ fn ai_generating_error(abort: &str, auto_add: bool) {
     }
 }
 
+fn mask_api_key(api_key: &str) -> String {
+    if api_key.len() <= 8 {
+        "***".to_string()
+    } else {
+        format!("{}***", &api_key[..8])
+    }
+}
+
 fn get_validated_ai_config(
     auto_add: bool,
     changed: bool,
@@ -575,9 +629,29 @@ fn get_validated_ai_config(
 
 #[cfg(test)]
 mod tests {
-    use gim_config::config::get_config;
+    use super::*;
 
-    use crate::cli::{command::GimCli, entry::run_cli};
+    #[test]
+    fn test_deleted_file_only_outputs_filename() {
+        let status_info = "D\tsrc/foo.rs\nM\tsrc/bar.rs\n";
+        let mut result = String::new();
+        for line in status_info.lines() {
+            if let Some((status, filename)) = line.split_once('\t') {
+                if status == "D" {
+                    result.push_str(&format!("Deleted: {}\n", filename));
+                } else {
+                    result.push_str(line);
+                    result.push('\n');
+                }
+            } else {
+                result.push_str(line);
+                result.push('\n');
+            }
+        }
+        assert!(result.contains("Deleted: src/foo.rs"));
+        assert!(!result.contains("src/foo.rs\n<file content>"));
+        assert!(result.contains("M\tsrc/bar.rs")); 
+    }
 
     #[tokio::test]
     async fn test_run_cli() {

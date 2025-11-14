@@ -36,3 +36,17 @@ gim -ap
 - `-v, --verbose`: Show detailed information
 
 You can combine these options; Use the `-h` option to view help information.
+
+## Dry Run (`--dry`)
+
+You can use the `--dry` option with `gim`, `gim -a`, or `gim -p` to preview the content that would be sent to the AI model, without actually sending it or making a commit.
+
+**Usage examples:**
+
+```bash
+gim --dry
+gim -a --dry
+gim -p --dry
+```
+
+This will print the diff and prompt content that would be sent to the AI, then exit without making any network requests or git commits.
