@@ -22,6 +22,10 @@ pub struct GimCli {
     /// Show verbose output
     #[arg(short, long, default_value_t = false)]
     pub verbose: bool,
+
+    /// Dry run: only print the content to be sent to AI, do not actually send or commit
+    #[arg(long, default_value_t = false)]
+    pub dry: bool,
 }
 
 /// Enum representing all supported subcommands for the gim CLI.

@@ -248,7 +248,19 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
 
             // Add file status information (including deleted files)
             let status_info = String::from_utf8_lossy(&diff_output.stdout);
-            diff_content.push_str(&status_info);
+            for line in status_info.lines() {
+                if let Some((status, filename)) = line.split_once('\t') {
+                    if status == "D" {
+                        diff_content.push_str(&format!("Deleted: {}\n", filename));
+                    } else {
+                        diff_content.push_str(line);
+                        diff_content.push('\n');
+                    }
+                } else {
+                    diff_content.push_str(line);
+                    diff_content.push('\n');
+                }
+            }
             diff_content.push_str("\n");
 
             // Add full diff content only for added/modified files
@@ -280,12 +292,24 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
             .expect("Failed to get git show --diff-filter=AM");
         print_verbose("Run 'git show --pretty=format: --diff-filter=AM HEAD'");
 
-        // Add file status information (including deleted files)
+        // Parse name-status, only output filename for deleted files
         let status_info = String::from_utf8_lossy(&show_status_output.stdout);
-        diff_content.push_str(&status_info);
+        for line in status_info.lines() {
+            if let Some((status, filename)) = line.split_once('\t') {
+                if status == "D" {
+                    diff_content.push_str(&format!("Deleted: {}\n", filename));
+                } else {
+                    diff_content.push_str(line);
+                    diff_content.push('\n');
+                }
+            } else {
+                diff_content.push_str(line);
+                diff_content.push('\n');
+            }
+        }
         diff_content.push_str("\n");
 
-        // Add full diff content only for added/modified files
+        // Append detailed diff only for added/modified files
         if !show_diff_output.stdout.is_empty() {
             diff_content.push_str("\nDetailed changes for added/modified files in last commit (excluding deleted files):\n");
             diff_content.push_str(&String::from_utf8_lossy(&show_diff_output.stdout));
@@ -295,6 +319,12 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
     }
     if diff_content.is_empty() {
         println!("No changes found. To override last commit message, please use '-p' option");
+        return;
+    }
+
+    // INSERT DRY-RUN LOGIC HERE
+    if cli.dry {
+        println!("\n--- DRY RUN ---\nContent to be sent to AI:\n{}", diff_content);
         return;
     }
 
@@ -599,9 +629,29 @@ fn get_validated_ai_config(
 
 #[cfg(test)]
 mod tests {
-    use gim_config::config::get_config;
+    use super::*;
 
-    use crate::cli::{command::GimCli, entry::run_cli};
+    #[test]
+    fn test_deleted_file_only_outputs_filename() {
+        let status_info = "D\tsrc/foo.rs\nM\tsrc/bar.rs\n";
+        let mut result = String::new();
+        for line in status_info.lines() {
+            if let Some((status, filename)) = line.split_once('\t') {
+                if status == "D" {
+                    result.push_str(&format!("Deleted: {}\n", filename));
+                } else {
+                    result.push_str(line);
+                    result.push('\n');
+                }
+            } else {
+                result.push_str(line);
+                result.push('\n');
+            }
+        }
+        assert!(result.contains("Deleted: src/foo.rs"));
+        assert!(!result.contains("src/foo.rs\n<file content>"));
+        assert!(result.contains("M\tsrc/bar.rs")); 
+    }
 
     #[tokio::test]
     async fn test_run_cli() {

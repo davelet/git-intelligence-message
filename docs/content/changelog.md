@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.8.0] - 2025-11-14
+
+- **Dry Run Mode**: Added `--dry` flag to preview content that will be sent to AI without actually sending or committing
+- **Optimized Deleted File Handling**: Deleted files now only display "Deleted: filename" instead of full file content in diffs, making output cleaner and more efficient
+
+
 ## [1.7.3] - 2025-11-13
 
 - Enhanced `gim ai` command:
