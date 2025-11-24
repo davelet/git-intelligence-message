@@ -20,7 +20,7 @@ scoop install git-intelligence-message
 
 ## Downloading the Executable (Windows)
 
-You can download the pre-built executable (gim.exe) from the [Releases](https://github.com/davelet/git-intelligence-message/releases) page.
+You can download the pre-built executable (gim.exe in `gim-{version}.zip`) from the [Releases](https://github.com/davelet/git-intelligence-message/releases) page.
 
 
 ## Using Cargo (Windows/Linux/macOS)
