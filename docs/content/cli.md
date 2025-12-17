@@ -33,7 +33,8 @@ gim -ap
 - `-t, --title <STRING>`: Specify the commit message title
 - `-a, --auto-add`: Automatically stage all modifications
 - `-p, --update`: Amend the most recent commit
-- `-v, --verbose`: Show detailed information
+- `-v, --verbose`: Show detailed information (will be suppressed in quiet mode)
+- `-q, --quiet`: Suppress normal output (quiet mode)
 
 You can combine these options; Use the `-h` option to view help information.
 

@@ -4,7 +4,7 @@ use std::io::Result;
 use toml::{Value, map::Map};
 
 use crate::{
-    cli::verbose::print_verbose,
+    cli::output,
     constants::{CUSTOM_SECTION_NAME, DIFF_SIZE_LIMIT},
 };
 
@@ -13,7 +13,7 @@ static NAME: &str = "lines_limit";
 pub fn get_lines_limit() -> usize {
     let lines_limit = config::get_config_value(CUSTOM_SECTION_NAME, NAME);
     if let Err(e) = lines_limit {
-        print_verbose(&format!(
+        output::print_verbose(&format!(
             "get custom config '{}' error: {:?}, return default: {}",
             NAME, e, DIFF_SIZE_LIMIT
         ));
@@ -21,7 +21,7 @@ pub fn get_lines_limit() -> usize {
     }
     let lines_limit = lines_limit.ok();
     if let Some(limit) = lines_limit {
-        print_verbose(&format!("get custom config '{}' value: {:?}", NAME, limit));
+        output::print_verbose(&format!("get custom config '{}' value: {:?}", NAME, limit));
         return limit.as_integer().unwrap() as usize;
     }
     DIFF_SIZE_LIMIT
@@ -34,7 +34,7 @@ pub fn set_lines_limit(lines_limit: usize) -> Result<()> {
         Value::Integer(lines_limit as i64),
     );
     if let Err(e) = set {
-        print_verbose(&format!(
+        output::print_verbose(&format!(
             "get custom config '{}' error: {:?}, return default: {}",
             NAME, e, DIFF_SIZE_LIMIT
         ));
@@ -51,9 +51,9 @@ pub fn set_lines_limit(lines_limit: usize) -> Result<()> {
         }
         return Err(e);
     }
-    println!(
-        "set custom config '{}' done, value: {:?}",
+    output::print_normal(
+        &format!("set custom config '{}' done, value: {:?}",
         NAME, lines_limit
-    );
+    ));
     Ok(())
 }

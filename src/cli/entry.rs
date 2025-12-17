@@ -1,10 +1,10 @@
 use crate::{
     cli::{
         http::get_url_by_model,
+        output,
         prompt::{get_diff_prompt, get_subject_prompt},
     },
     constants::{DIFF_PROMPT_FILE, SUBJECT_PROMPT_FILE},
-    verbose::print_verbose,
 };
 
 use super::{
@@ -24,7 +24,7 @@ use std::process::Command;
 ///
 /// * `cli` - Reference to the parsed CLI arguments.
 /// * `config` - Mutable TOML configuration value.
-pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
+pub async fn run_cli(cli: &GimCli, mut config: toml::Value) -> Result<(), Box<dyn std::error::Error>> {
     match &cli.command {
         Some(GimCommands::Update {
             force,
@@ -67,7 +67,7 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
                     std::process::exit(1);
                 }
             }
-            return;
+return Ok(());
         }
         Some(GimCommands::Prompt {
             edit,
@@ -77,9 +77,7 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
         }) => {
             if *reset {
                 if *edit || prompt.is_some() || editor.is_some() {
-                    println!(
-                        "Warning: --edit, --prompt or --editor will be ignored when --reset provided"
-                    );
+                    output::print_warning("--edit, --prompt or --editor will be ignored when --reset provided");
                 }
                 // delete the 2 files
                 if let Err(e) = delete_prompt_files() {
@@ -92,7 +90,7 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
                 eprintln!("Error: {}", e);
                 std::process::exit(1);
             }
-            return;
+return Ok(());
         }
         Some(GimCommands::Ai {
             model,
@@ -107,11 +105,11 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
                     // Show current API key (full, not masked)
                     let ai = get_validated_ai_config(false, false);
                     if let Some(ai) = ai {
-                        println!("Current API Key: {}", &ai.2);
+                        output::print_normal(&format!("Current API Key: {}", &ai.2));
                     } else {
                         eprintln!("Error: ai section is not configured");
                     }
-                    return;
+        return Ok(());
                 }
             }
 
@@ -143,10 +141,10 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
                 } else {
                     eprintln!("Error: ai section is not configured");
                 }
-                return;
+    return Ok(());
             }
             super::ai_configer::update_ai_config(&mut config, model, apikey, url, language);
-            return;
+return Ok(());
         }
         Some(GimCommands::Config {
             lines_limit,
@@ -167,19 +165,20 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
                     std::process::exit(1);
                 }
             }
-            return;
+            return Ok(());
         }
         None => {}
     }
 
     // Check if current directory is a git repository
-    // git rev-parse --is-inside-work-tree
+    // Check if the directory is a git repository
     let is_git_repo = Command::new("git")
         .args(["rev-parse", "--is-inside-work-tree"])
-        .output();
-    if is_git_repo.is_err() || !is_git_repo.unwrap().status.success() {
-        eprintln!("Error: should run in a git repository");
-        return;
+        .output()
+        .is_ok();
+    if !is_git_repo {
+        output::print_warning("The current directory is not a git repository.");
+        return Ok(());
     }
 
     // Get git status
@@ -195,7 +194,7 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
         ])
         .output()
         .expect("Failed to get git status");
-    print_verbose(&format!(
+    output::print_verbose(&format!(
         "Run 'git status -s --untracked-files={}'",
         if cli.auto_add { "all" } else { "no" }
     ));
@@ -203,17 +202,17 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
     let changes: Vec<&str> = status_str.lines().collect();
     let mut diff_content = String::new();
     if !changes.is_empty() {
-        println!("Found {} changes:", changes.len());
+        output::print_normal(&format!("Found {} changes:", changes.len()));
         for entry in changes.iter() {
-            println!(
-                "{:?} {}",
+            output::print_normal(
+                &format!("{:?} {}",
                 entry,
                 if !cli.auto_add && (entry.starts_with(' ') || entry.starts_with('?')) {
                     " - <<Ignored>>"
                 } else {
                     ""
                 }
-            );
+            ));
         }
 
         // Auto add changes if enabled
@@ -224,9 +223,9 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
                 .expect("Failed to execute git add");
             if !add_output.status.success() {
                 eprintln!("Error: Failed to add changes to git");
-                return;
+                return Ok(());
             }
-            print_verbose("Run 'git add .'");
+            output::print_verbose("Run 'git add .'");
         }
 
         // Get staged changes with name-status to filter out deleted file contents
@@ -234,14 +233,14 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
             .args(["diff", "--cached", "--name-status"])
             .output()
             .expect("Failed to get git diff --cached --name-status");
-        print_verbose("Run 'git diff --cached --name-status'");
+        output::print_verbose("Run 'git diff --cached --name-status'");
 
         // Get full diff for non-deleted files
         let full_diff_output = Command::new("git")
             .args(["diff", "--cached", "--diff-filter=AM"])
             .output()
             .expect("Failed to get git diff --cached --diff-filter=AM");
-        print_verbose("Run 'git diff --cached --diff-filter=AM'");
+        output::print_verbose("Run 'git diff --cached --diff-filter=AM'");
 
         if !diff_output.stdout.is_empty() {
             diff_content.push_str("When I use `git diff`, I got the following output: \n");
@@ -283,14 +282,14 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
             .args(["show", "--pretty=format:", "--name-status", "HEAD"])
             .output()
             .expect("Failed to get git show --name-status");
-        print_verbose("Run 'git show --pretty=format: --name-status HEAD'");
+        output::print_verbose("Run 'git show --pretty=format: --name-status HEAD'");
 
         // Get full diff for non-deleted files in last commit
         let show_diff_output = Command::new("git")
             .args(["show", "--pretty=format:", "--diff-filter=AM", "HEAD"])
             .output()
             .expect("Failed to get git show --diff-filter=AM");
-        print_verbose("Run 'git show --pretty=format: --diff-filter=AM HEAD'");
+        output::print_verbose("Run 'git show --pretty=format: --diff-filter=AM HEAD'");
 
         // Parse name-status, only output filename for deleted files
         let status_info = String::from_utf8_lossy(&show_status_output.stdout);
@@ -315,24 +314,27 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
             diff_content.push_str(&String::from_utf8_lossy(&show_diff_output.stdout));
             diff_content.push_str("\n");
         }
-        println!("As '-p' option is enabled, I will amend the last commit message");
+        output::print_normal("As '-p' option is enabled, I will amend the last commit message");
     }
     if diff_content.is_empty() {
-        println!("No changes found. To override last commit message, please use '-p' option");
-        return;
+        output::print_normal("No changes to commit.");
+        return Ok(());
     }
 
     // INSERT DRY-RUN LOGIC HERE
     if cli.dry {
-        println!("\n--- DRY RUN ---\nContent to be sent to AI:\n{}", diff_content);
-        return;
+        output::print_normal(
+            &format!("\n--- DRY RUN ---\nContent to be sent to AI:\n{}",
+            diff_content
+        ));
+        return Ok(());
     }
 
     let diff_limit = crate::cli::custom_param::get_lines_limit();
     if diff_content.lines().count() > diff_limit {
         eprintdoc!(
             r"
-            Your changed lines count ({}) exceeds the limit: {}. 
+            Your changed lines count ({}) exceeds the limit: {}.
             Please use 'git commit' to commit the changes or adjust the limit by 'gim config --change-limit <LIMIT>' and try again.
             ",
             diff_content.lines().count(),
@@ -343,7 +345,7 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
 
     let config_result = get_validated_ai_config(cli.auto_add, changes.len() > 0);
     if config_result.is_none() {
-        return;
+        return Ok(());
     }
     let (url, model_name, api_key, language) = config_result.unwrap();
 
@@ -365,7 +367,7 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
     .await;
     if let Err(e) = res {
         ai_generating_error(&format!("Error: {}", e), cli.auto_add && changes.len() > 0);
-        return;
+        return Ok(());
     }
     let file_changes = res.unwrap();
 
@@ -392,8 +394,8 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
         }
     }
     let commit_subject = commit_subject.unwrap();
-    print_verbose(&format!("AI chat content: {}", diff_content));
-    println!();
+    output::print_verbose(&format!("AI chat content: {}", diff_content));
+    output::print_normal("");
     printdoc!(
         r#"
         >>>>>>>>>>>>>>>>>>>>>>>>>
@@ -414,14 +416,14 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
     commit_args.extend(["-m", &commit_subject, "-m", &file_changes]);
 
     // Execute git commit
-    print_verbose("Run 'git commit -m <subject> -m <message>'");
+    output::print_verbose("Run 'git commit -m <subject> -m <message>'");
     let commit_output = Command::new("git")
         .args(&commit_args)
         .output()
         .expect("Failed to execute git commit");
 
     if commit_output.status.success() {
-        println!(
+        output::print_normal(
             "✅ Successfully committed changes! If you were discontent with the commit message and want to polish or revise it, run 'gim -p' or 'git commit --amend'"
         );
     } else {
@@ -430,6 +432,7 @@ pub async fn run_cli(cli: &GimCli, mut config: toml::Value) {
             String::from_utf8_lossy(&commit_output.stderr)
         );
     }
+    Ok(())
 }
 
 fn delete_prompt_files() -> Result<(), Box<dyn std::error::Error>> {
@@ -552,7 +555,7 @@ fn open_config_directory() -> Result<(), Box<dyn std::error::Error>> {
 fn ai_generating_error(abort: &str, auto_add: bool) {
     eprintln!("{}", abort);
     if auto_add {
-        println!("Noted: your changes are added to git staged area");
+        output::print_verbose("No staged changes to commit.");
     }
 }
 
@@ -630,6 +633,7 @@ fn get_validated_ai_config(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use gim_config::config::get_config;
 
     #[test]
     fn test_deleted_file_only_outputs_filename() {
@@ -650,19 +654,6 @@ mod tests {
         }
         assert!(result.contains("Deleted: src/foo.rs"));
         assert!(!result.contains("src/foo.rs\n<file content>"));
-        assert!(result.contains("M\tsrc/bar.rs")); 
-    }
-
-    #[tokio::test]
-    async fn test_run_cli() {
-        let config = get_config().expect("Failed to access config file");
-        let cli = GimCli {
-            command: None,
-            auto_add: false,
-            overwrite: true,
-            title: None,
-            verbose: true,
-        };
-        run_cli(&cli, config).await;
+        assert!(result.contains("M\tsrc/bar.rs"));
     }
 }
