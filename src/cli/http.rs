@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
+use crate::cli::output;
+
 #[derive(Serialize, Deserialize, Debug, validator::Validate)]
 struct Message {
     #[validate(length(min = 1))]
@@ -105,7 +107,7 @@ pub async fn chat(
     }
 
     if log_info {
-        println!("ai request url: {}", url);
+        output::print_normal(&format!("ai request url: {}", url));
     }
 
     // Send request
@@ -124,7 +126,7 @@ pub async fn chat(
 
     let res_text = response.text().await?;
     if log_info {
-        println!("ai request result ({}): {}", status, res_text);
+        output::print_verbose(&format!("ai request result ({}): {}", status, res_text));
     }
 
     let res: Response = serde_json::from_str(&res_text)?;
@@ -177,25 +179,3 @@ pub fn get_url_by_model(model_name: &str) -> Option<String> {
     None
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::cli::http::chat;
-
-    #[tokio::test]
-    async fn test_chat_success() {
-        let result = chat(
-            crate::constants::QWEN_URL.into(),
-            "qwen2.5-0.5b-instruct".into(),
-            "sk-".into(),
-            Some("You are a helpful assistant.".to_string()),
-            "讲个笑话".into(),
-            false,
-        )
-        .await;
-        if result.is_err() {
-            println!("Model error: {}", result.unwrap_err());
-        } else {
-            println!("Model response: {}", result.unwrap());
-        }
-    }
-}

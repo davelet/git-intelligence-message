@@ -7,7 +7,10 @@ pub mod reminder;
 
 use reminder::UpdateReminder;
 
-use crate::{constants::REPOSITORY, verbose::print_verbose};
+use crate::{
+    cli::output::{self, print_verbose},
+    constants::REPOSITORY,
+};
 use gim_config::config::update_config_value;
 use toml::Value;
 
@@ -30,9 +33,9 @@ pub fn check_update_reminder() -> Result<(), Box<dyn std::error::Error>> {
     if to_reminder {
         let check_result = new_version_available()?;
         if check_result.0 {
-            println!(
-                "ℹ️  A new version is available: {}. Run 'gim update' to update.",
-                check_result.2
+            output::print_normal(
+                &format!("ℹ️  A new version is available: {}. Run 'gim update' to update.",
+                check_result.2)
             );
 
             // Increment the reminder count or reset if needed
@@ -41,7 +44,7 @@ pub fn check_update_reminder() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
-    print_verbose(&format!("End checking new version"));
+    output::print_normal(&format!("End checking new version"));
     Ok(())
 }
 
@@ -50,12 +53,12 @@ pub fn check_update_reminder() -> Result<(), Box<dyn std::error::Error>> {
 pub async fn check_update_reminder_async() {
     tokio::task::spawn_blocking(|| {
         if let Err(e) = check_update_reminder() {
-            print_verbose(&format!("Warning: {}", e));
+            output::print_warning(&format!("Warning: {}", e));
         }
     })
     .await
     .unwrap_or_else(|e| {
-        print_verbose(&format!("Warning: Failed to check for updates: {}", e));
+        output::print_warning(&format!("Warning: Failed to check for updates: {}", e));
     });
 }
 
@@ -70,7 +73,7 @@ fn new_version_available() -> Result<(bool, Version, Version), Box<dyn std::erro
         get_latest_version_by_homebrew()?
     };
 
-    print_verbose(&format!(
+    output::print_normal(&format!(
         "Local version: {}; Remote Version: {}",
         current, latest
     ));
@@ -83,7 +86,7 @@ fn get_latest_version_by_homebrew() -> Result<Version, Box<dyn std::error::Error
     let output = Command::new("brew")
         .args(["info", "--json=v2", REPOSITORY])
         .output()?;
-    print_verbose(&format!("run 'brew info --json=v2 {}'", REPOSITORY));
+    output::print_normal(&format!("run 'brew info --json=v2 {}'", REPOSITORY));
 
     if !output.status.success() {
         return Err("Failed to fetch version information from Homebrew".into());
@@ -117,10 +120,10 @@ fn get_latest_version_by_scoop() -> Result<Version, Box<dyn std::error::Error>> 
     // First update the scoop bucket to get latest information
     let scoop_exe = &get_scoop_exe()?;
     let update_output = Command::new(scoop_exe).args(["update"]).output();
-    print_verbose(&format!("run '{} update'", scoop_exe));
+    output::print_normal(&format!("run '{} update'", scoop_exe));
 
     if let Err(e) = update_output {
-        print_verbose(&format!("Warning: Failed to update Scoop bucket: {}", e));
+        output::print_normal(&format!("Warning: Failed to update Scoop bucket: {}", e));
         return Err("Skip new version checking. You may have to add 'scoop' to your PATH.".into());
     }
     let update_output = update_output?;
@@ -133,14 +136,14 @@ fn get_latest_version_by_scoop() -> Result<Version, Box<dyn std::error::Error>> 
     let status_output = Command::new(scoop_exe)
         .args(["status", REPOSITORY])
         .output()?;
-    print_verbose(&format!("run '{} status {}'", scoop_exe, REPOSITORY));
+    output::print_normal(&format!("run '{} status {}'", scoop_exe, REPOSITORY));
 
     if !status_output.status.success() {
         // If status command fails, try to get info about the package
         let info_output = Command::new(scoop_exe)
             .args(["info", REPOSITORY])
             .output()?;
-        print_verbose(&format!(
+        output::print_normal(&format!(
             "[I'm TRYing] run '{} info {}'",
             scoop_exe, REPOSITORY
         ));
@@ -195,7 +198,7 @@ fn get_latest_version_by_scoop() -> Result<Version, Box<dyn std::error::Error>> 
     let info_output = Command::new(scoop_exe)
         .args(["info", REPOSITORY])
         .output()?;
-    print_verbose(&format!(
+    output::print_normal(&format!(
         "[CHECK DONE] run '{} info {}'",
         scoop_exe, REPOSITORY
     ));
@@ -231,26 +234,26 @@ pub async fn check_and_install_update(force: bool) -> Result<(), Box<dyn std::er
         "Homebrew"
     };
 
-    print_verbose(&format!("Checking for updates via {}...", package_manager));
+    output::print_normal(&format!("Checking for updates via {}...", package_manager));
     let (new, current, latest) = new_version_available()?;
 
     // Only proceed if force is true or if latest is actually newer
     if !new && !force {
-        println!(
-            "You're already on the latest version: {}. Run with '--force' to update me anyway.",
-            current
+        output::print_normal(
+            &format!("You're already on the latest version: {}. Run with '--force' to update me anyway.",
+            current)
         );
         // Reset the reminder since the user explicitly checked for updates
         if let Err(e) = UpdateReminder::load().reset_reminder() {
-            eprintln!("Warning: Failed to reset reminder: {}", e);
+            eprintln!("Failed to reset update reminder: {}", e);
         }
         return Ok(());
     } else if new {
-        println!("New version available: {} (current: {})", latest, current);
+        output::print_normal(&format!("New version available: {} (current: {})", latest, current));
     }
 
     // Use the appropriate package manager to upgrade
-    println!("Upgrading via {}...", package_manager);
+    output::print_normal(&format!("Upgrading via {}...", package_manager));
 
     let status = if cfg!(target_os = "windows") {
         // Use Scoop to upgrade the package
@@ -272,7 +275,7 @@ pub async fn check_and_install_update(force: bool) -> Result<(), Box<dyn std::er
         return Err(format!("Failed to upgrade via {}", package_manager).into());
     }
 
-    println!("✅ Successfully upgraded to version: {}", latest);
+    output::print_normal(&format!("✅ Successfully upgraded to version: {}", latest));
 
     // Reset the reminder after successful update
     if let Err(e) = UpdateReminder::load().reset_reminder() {
