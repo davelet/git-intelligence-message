@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.1] - 2025-12-17
+
+- **Quiet Mode**: Added `--quiet` flag to suppress normal output
+
+
 ## [1.8.0] - 2025-11-14
 
 - **Dry Run Mode**: Added `--dry` flag to preview content that will be sent to AI without actually sending or committing

@@ -1,4 +1,9 @@
-use cli::{command::GimCli, entry::run_cli, update::check_update_reminder_async, verbose};
+use cli::{
+    command::GimCli,
+    entry::run_cli,
+    output::{self, print_normal, set_quiet, set_verbose, is_verbose, is_quiet},
+    update::check_update_reminder_async,
+};
 use gim_config::config::get_config;
 use std::env;
 // use std::time::Duration;
@@ -10,13 +15,14 @@ mod constants;
 async fn main() {
     let cli = <GimCli as clap::Parser>::parse();
 
-    // Set global verbose flag
-    verbose::set_verbose(cli.verbose);
+    // Set global flags
+    set_quiet(cli.quiet);
+    set_verbose(cli.verbose);
 
     let start_time = std::time::Instant::now();
     // Start update reminder check asynchronously in background
-    // Only show update reminder for the main command, not for subcommands
-    let update_check_handle = if env::args().nth(1).map_or(true, |arg| arg != "update") {
+    // Skip if --dry flag is passed or if this is the update subcommand
+    let update_check_handle = if !cli.dry && env::args().nth(1).map_or(true, |arg| arg != "update") {
         Some(tokio::spawn(check_update_reminder_async()))
     } else {
         None
@@ -24,18 +30,22 @@ async fn main() {
 
     // run the cli
     let config = get_config().expect("Failed to access config file");
-    run_cli(&cli, config).await;
-    println!();
+    if let Err(e) = run_cli(&cli, config).await {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
+    }
+    print_normal("");
 
     // Give the background update check task a chance to complete
-    // If it's still running, wait up to 2 seconds for it to finish
     if let Some(handle) = update_check_handle {
-        // let _ = tokio::time::timeout(Duration::from_secs(6), handle).await;
+        if !handle.is_finished() {
+            output::print_normal("Waiting for update check to complete... (Ctrl+C to exit)");
+        }
         let _ = handle.await;
     }
 
-    if cli.verbose {
+    if is_verbose() && !is_quiet() {
         let time = start_time.elapsed();
-        cli::verbose::print_verbose(&format!("Time elapsed: {:?}", time));
+        output::print_verbose(&format!("Time elapsed: {:?}", time));
     }
 }

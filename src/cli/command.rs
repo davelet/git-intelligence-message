@@ -23,6 +23,10 @@ pub struct GimCli {
     #[arg(short, long, default_value_t = false)]
     pub verbose: bool,
 
+    /// Suppress all normal output (overrides verbose)
+    #[arg(short, long, default_value_t = false)]
+    pub quiet: bool,
+
     /// Dry run: only print the content to be sent to AI, do not actually send or commit
     #[arg(long, default_value_t = false)]
     pub dry: bool,
