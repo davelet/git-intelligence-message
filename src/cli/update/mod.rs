@@ -33,10 +33,10 @@ pub fn check_update_reminder() -> Result<(), Box<dyn std::error::Error>> {
     if to_reminder {
         let check_result = new_version_available()?;
         if check_result.0 {
-            output::print_normal(
-                &format!("ℹ️  A new version is available: {}. Run 'gim update' to update.",
-                check_result.2)
-            );
+            output::print_normal(&format!(
+                "ℹ️  A new version is available: {}. Run 'gim update' to update.",
+                check_result.2
+            ));
 
             // Increment the reminder count or reset if needed
             if let Err(e) = reminder.increment_reminder_count() {
@@ -44,7 +44,7 @@ pub fn check_update_reminder() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
-    output::print_normal(&format!("End checking new version"));
+    output::print_verbose(&format!("[background] End checking new version"));
     Ok(())
 }
 
@@ -73,8 +73,8 @@ fn new_version_available() -> Result<(bool, Version, Version), Box<dyn std::erro
         get_latest_version_by_homebrew()?
     };
 
-    output::print_normal(&format!(
-        "Local version: {}; Remote Version: {}",
+    output::print_verbose(&format!(
+        "[background] Local version: {}; Remote Version: {}",
         current, latest
     ));
     Ok((&latest > &current, current, latest))
@@ -86,7 +86,7 @@ fn get_latest_version_by_homebrew() -> Result<Version, Box<dyn std::error::Error
     let output = Command::new("brew")
         .args(["info", "--json=v2", REPOSITORY])
         .output()?;
-    output::print_normal(&format!("run 'brew info --json=v2 {}'", REPOSITORY));
+    output::print_verbose(&format!("[background] run 'brew info --json=v2 {}'", REPOSITORY));
 
     if !output.status.success() {
         return Err("Failed to fetch version information from Homebrew".into());
@@ -120,7 +120,7 @@ fn get_latest_version_by_scoop() -> Result<Version, Box<dyn std::error::Error>> 
     // First update the scoop bucket to get latest information
     let scoop_exe = &get_scoop_exe()?;
     let update_output = Command::new(scoop_exe).args(["update"]).output();
-    output::print_normal(&format!("run '{} update'", scoop_exe));
+    output::print_verbose(&format!("[background] run '{} update'", scoop_exe));
 
     if let Err(e) = update_output {
         output::print_normal(&format!("Warning: Failed to update Scoop bucket: {}", e));
@@ -239,17 +239,20 @@ pub async fn check_and_install_update(force: bool) -> Result<(), Box<dyn std::er
 
     // Only proceed if force is true or if latest is actually newer
     if !new && !force {
-        output::print_normal(
-            &format!("You're already on the latest version: {}. Run with '--force' to update me anyway.",
-            current)
-        );
+        output::print_normal(&format!(
+            "You're already on the latest version: {}. Run with '--force' to update me anyway.",
+            current
+        ));
         // Reset the reminder since the user explicitly checked for updates
         if let Err(e) = UpdateReminder::load().reset_reminder() {
             eprintln!("Failed to reset update reminder: {}", e);
         }
         return Ok(());
     } else if new {
-        output::print_normal(&format!("New version available: {} (current: {})", latest, current));
+        output::print_normal(&format!(
+            "New version available: {} (current: {})",
+            latest, current
+        ));
     }
 
     // Use the appropriate package manager to upgrade
