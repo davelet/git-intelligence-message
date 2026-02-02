@@ -14,6 +14,8 @@ use indoc::{eprintdoc, printdoc};
 /// * `language` - The language for the commit message.
 /// * `verbose` - Whether to print verbose output.
 /// * `custom_title` - Optional custom title for the commit.
+/// * `custom_diff_prompt` - Optional custom diff prompt.
+/// * `custom_subject_prompt` - Optional custom subject prompt.
 ///
 /// # Returns
 ///
@@ -26,6 +28,8 @@ pub async fn generate_commit_message(
     language: String,
     verbose: bool,
     custom_title: Option<String>,
+    custom_diff_prompt: Option<String>,
+    custom_subject_prompt: Option<String>,
 ) -> Result<(String, String), Box<dyn std::error::Error>> {
     if language != "English" {
         diff_content.push_str(&format!(
@@ -34,7 +38,7 @@ pub async fn generate_commit_message(
         ));
     }
 
-    let system = prompt::get_diff_prompt();
+    let system = prompt::get_diff_prompt(custom_diff_prompt.as_deref());
     let res = client::chat(
         url.clone(),
         model_name.clone(),
@@ -56,7 +60,7 @@ pub async fn generate_commit_message(
     let commit_subject = if let Some(title) = custom_title {
         title
     } else {
-        let system = prompt::get_subject_prompt();
+        let system = prompt::get_subject_prompt(custom_subject_prompt.as_deref());
         let res = client::chat(
             url,
             model_name,

@@ -1,6 +1,26 @@
 use std::process::Command;
+use std::path::PathBuf;
 
 use crate::utils::output;
+
+/// Gets the git repository root directory.
+///
+/// # Returns
+///
+/// * `Option<PathBuf>` containing the git root path if inside a git repository, `None` otherwise.
+pub fn get_git_root() -> Option<PathBuf> {
+    let output = Command::new("git")
+        .args(["rev-parse", "--show-toplevel"])
+        .output()
+        .ok()?;
+
+    if output.status.success() {
+        let path_str = String::from_utf8_lossy(&output.stdout);
+        Some(PathBuf::from(path_str.trim()))
+    } else {
+        None
+    }
+}
 
 /// Checks if the current directory is a git repository.
 ///
