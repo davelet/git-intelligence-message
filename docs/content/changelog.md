@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.0.0] - 2026-02-02
+
+### New Features
+- **Local Project Prompts**: Added support for `.gim` directory in git repository root for project-specific prompt files
+- **Custom Prompts**: Added `--diff-prompt` and `--subject-prompt` command-line options to override default AI prompts
+  - Enhanced prompt loading with local `.gim` directory support for project-specific prompts
+  - Implemented priority system: CLI args > local `.gim` directory > config directory > built-in defaults
+- **Flexible Prompt Override**: Users can now override prompts temporarily without modifying files
+
+
 ## [1.8.1] - 2025-12-17
 
 - **Quiet Mode**: Added `--quiet` flag to suppress normal output

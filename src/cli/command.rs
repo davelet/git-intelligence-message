@@ -30,6 +30,14 @@ pub struct GimCli {
     /// Dry run: only print the content to be sent to AI, do not actually send or commit
     #[arg(long, default_value_t = false)]
     pub dry: bool,
+
+    /// Custom diff prompt to override the default
+    #[arg(long)]
+    pub diff_prompt: Option<String>,
+
+    /// Custom subject prompt to override the default
+    #[arg(long)]
+    pub subject_prompt: Option<String>,
 }
 
 /// Enum representing all supported subcommands for the gim CLI.

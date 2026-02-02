@@ -35,6 +35,8 @@ gim -ap
 - `-p, --update`: Amend the most recent commit
 - `-v, --verbose`: Show detailed information (will be suppressed in quiet mode)
 - `-q, --quiet`: Suppress normal output (quiet mode)
+- `--diff-prompt <STRING>`: Custom diff prompt to override the default AI prompt for analyzing changes
+- `--subject-prompt <STRING>`: Custom subject prompt to override the default AI prompt for generating commit messages
 
 You can combine these options; Use the `-h` option to view help information.
 
@@ -51,3 +53,37 @@ gim -p --dry
 ```
 
 This will print the diff and prompt content that would be sent to the AI, then exit without making any network requests or git commits.
+
+## Custom Prompts
+
+You can override the default AI prompts used for analyzing changes and generating commit messages using the `--diff-prompt` and `--subject-prompt` options.
+
+### Usage Examples
+
+```bash
+# Use a custom diff prompt only
+gim --diff-prompt "Summarize each file change in one sentence focusing on the main functionality"
+
+# Use a custom subject prompt only  
+gim --subject-prompt "Create a concise commit message following conventional commit format"
+
+# Use both custom prompts
+gim --diff-prompt "List files with their key changes" --subject-prompt "Generate a descriptive commit title"
+
+# Combine with other options
+gim -a --diff-prompt "Analyze changes for security implications" --subject-prompt "Create security-focused commit message"
+
+# Test custom prompts with dry run
+gim --dry --diff-prompt "Custom analysis prompt" --subject-prompt "Custom message prompt"
+```
+
+### Priority Order
+
+The prompts are used in the following priority order:
+
+1. **Command line arguments** (`--diff-prompt` / `--subject-prompt`) - Highest priority
+2. **Local `.gim` directory** - Project-specific prompt files
+3. **Config directory** - Global prompt files  
+4. **Built-in defaults** - Fallback prompts
+
+This allows you to have project-specific prompts in a `.gim` directory, but override them temporarily with command line arguments when needed.

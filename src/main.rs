@@ -241,6 +241,8 @@ async fn run_cli(cli: &GimCli, mut config: toml::Value) -> Result<(), Box<dyn st
         language,
         cli.verbose,
         cli.title.clone(),
+        cli.diff_prompt.clone(),
+        cli.subject_prompt.clone(),
     )
     .await?;
 

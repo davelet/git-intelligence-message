@@ -3,9 +3,27 @@ use indoc::indoc;
 use std::{fs, io, path::PathBuf, process::Command};
 
 use crate::config::constants::{DIFF_PROMPT_FILE, SUBJECT_PROMPT_FILE};
+use crate::core::git;
 
 fn file_dirs() -> io::Result<PathBuf> {
     directory::config_dir()
+}
+
+/// Checks for local .gim directory and returns prompt file paths if they exist
+fn get_local_gim_prompt_files() -> Option<(PathBuf, PathBuf)> {
+    if let Some(git_root) = git::get_git_root() {
+        let gim_dir = git_root.join(".gim");
+        if gim_dir.is_dir() {
+            let diff_prompt_path = gim_dir.join(DIFF_PROMPT_FILE);
+            let subject_prompt_path = gim_dir.join(SUBJECT_PROMPT_FILE);
+            
+            // Check if at least one of the prompt files exists
+            if diff_prompt_path.exists() || subject_prompt_path.exists() {
+                return Some((diff_prompt_path, subject_prompt_path));
+            }
+        }
+    }
+    None
 }
 
 fn trim_diff_prompt() -> String {
@@ -54,13 +72,39 @@ fn trim_subject_prompt() -> String {
     .to_string()
 }
 
-/// Returns the diff prompt string, reading from file if available, or using the default if not.
+/// Returns the diff prompt string, reading from local .gim directory first if available,
+/// then from config directory if available, or using the default if not.
+/// If a custom prompt is provided, it will be used instead of any file-based prompts.
+///
+/// # Arguments
+///
+/// * `custom_prompt` - Optional custom prompt to use instead of file-based prompts
 ///
 /// # Returns
 ///
 /// * `String` containing the diff prompt.
-pub fn get_diff_prompt() -> String {
+pub fn get_diff_prompt(custom_prompt: Option<&str>) -> String {
+    // If custom prompt is provided, use it directly
+    if let Some(custom) = custom_prompt {
+        return custom.to_string();
+    }
+    
     let trimmed = trim_diff_prompt();
+    
+    // First, check for local .gim directory
+    if let Some((local_diff_path, _)) = get_local_gim_prompt_files() {
+        if local_diff_path.exists() {
+            match fs::read_to_string(&local_diff_path) {
+                Ok(content) => return content,
+                Err(e) => {
+                    eprintln!("Failed to read diff prompt from local .gim directory: {}", e);
+                    // Continue to fallback to config directory
+                }
+            }
+        }
+    }
+    
+    // Fallback to config directory
     let path = match file_dirs() {
         Ok(p) => p.join(DIFF_PROMPT_FILE),
         Err(_) => {
@@ -82,13 +126,39 @@ pub fn get_diff_prompt() -> String {
     })
 }
 
-/// Returns the subject prompt string, reading from file if available, or using the default if not.
+/// Returns the subject prompt string, reading from local .gim directory first if available,
+/// then from config directory if available, or using the default if not.
+/// If a custom prompt is provided, it will be used instead of any file-based prompts.
+///
+/// # Arguments
+///
+/// * `custom_prompt` - Optional custom prompt to use instead of file-based prompts
 ///
 /// # Returns
 ///
 /// * `String` containing the subject prompt.
-pub fn get_subject_prompt() -> String {
+pub fn get_subject_prompt(custom_prompt: Option<&str>) -> String {
+    // If custom prompt is provided, use it directly
+    if let Some(custom) = custom_prompt {
+        return custom.to_string();
+    }
+    
     let trimmed = trim_subject_prompt();
+    
+    // First, check for local .gim directory
+    if let Some((_, local_subject_path)) = get_local_gim_prompt_files() {
+        if local_subject_path.exists() {
+            match fs::read_to_string(&local_subject_path) {
+                Ok(content) => return content,
+                Err(e) => {
+                    eprintln!("Failed to read subject prompt from local .gim directory: {}", e);
+                    // Continue to fallback to config directory
+                }
+            }
+        }
+    }
+    
+    // Fallback to config directory
     let path = match file_dirs() {
         Ok(p) => p.join(SUBJECT_PROMPT_FILE),
         Err(_) => {
@@ -169,8 +239,8 @@ pub fn handle_prompt_command(
     let diff_prompt_path = config_dir.join(DIFF_PROMPT_FILE);
     let subject_prompt_path = config_dir.join(SUBJECT_PROMPT_FILE);
 
-    let diff_prompt = get_diff_prompt();
-    let subject_prompt = get_subject_prompt();
+    let diff_prompt = get_diff_prompt(None);
+    let subject_prompt = get_subject_prompt(None);
 
     if edit {
         if let Some(prompt_type) = prompt {
