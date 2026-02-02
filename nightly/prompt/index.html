@@ -555,6 +555,18 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Prompt Management
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -565,6 +577,85 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#file-based-prompt-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      File-based Prompt Management
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-project-prompts-gim-directory" class="md-nav__link">
+    <span class="md-ellipsis">
+      Local Project Prompts (.gim directory)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Local Project Prompts (.gim directory)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#file-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      File Structure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#benefits-of-gim-directory" class="md-nav__link">
+    <span class="md-ellipsis">
+      Benefits of .gim Directory
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#priority-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      Priority Order
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#command-line-custom-prompts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Command-line Custom Prompts
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -659,6 +750,7 @@
 
 <h1 id="prompt-management"><a class="toclink" href="#prompt-management">Prompt Management</a></h1>
 <p>View and edit the AI prompt used for generating commit message, for description and subject respectively:</p>
+<h2 id="file-based-prompt-management"><a class="toclink" href="#file-based-prompt-management">File-based Prompt Management</a></h2>
 <div class="highlight"><pre><span></span><code><span class="c1"># View current prompt</span>
 gim<span class="w"> </span>prompt
 
@@ -681,6 +773,63 @@ gim<span class="w"> </span>prompt<span class="w"> </span>--reset
 <li><code>d</code>, <code>diff</code>, <code>diff_prompt</code> for summarizing file changes, which will be used as the commit description.</li>
 <li><code>s</code>, <code>subject</code>, <code>subject_prompt</code> for generating the commit subject based on the summary of file changes.</li>
 </ul>
+<h2 id="local-project-prompts-gim-directory"><a class="toclink" href="#local-project-prompts-gim-directory">Local Project Prompts (.gim directory)</a></h2>
+<p>You can create project-specific prompt files by creating a <code>.gim</code> directory in your git repository root:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Create .gim directory in your project</span>
+mkdir<span class="w"> </span>.gim
+
+<span class="c1"># Create project-specific diff prompt</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Analyze changes for this project&#39;s specific needs&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>.gim/diff_prompt
+
+<span class="c1"># Create project-specific subject prompt  </span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Generate commit messages following our team&#39;s conventions&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>.gim/subject_prompt
+</code></pre></div>
+<h3 id="file-structure"><a class="toclink" href="#file-structure">File Structure</a></h3>
+<div class="highlight"><pre><span></span><code>your-project/
+├── .git/
+├── .gim/
+│   ├── diff_prompt      # Custom diff analysis prompt
+│   └── subject_prompt   # Custom commit message prompt
+├── src/
+└── ...
+</code></pre></div>
+<h3 id="benefits-of-gim-directory"><a class="toclink" href="#benefits-of-gim-directory">Benefits of .gim Directory</a></h3>
+<ul>
+<li><strong>Team Consistency</strong>: All team members use the same prompts when working on the project</li>
+<li><strong>Project-Specific</strong>: Tailor prompts to your project's specific requirements and conventions</li>
+<li><strong>Version Control</strong>: Include prompt files in git for consistent team usage</li>
+<li><strong>Priority</strong>: Local <code>.gim</code> prompts override global config prompts but can be overridden by command-line arguments</li>
+</ul>
+<h2 id="priority-order"><a class="toclink" href="#priority-order">Priority Order</a></h2>
+<p>The prompts are used in the following priority order:</p>
+<ol>
+<li><strong>Command-line arguments</strong> (<code>--diff-prompt</code> / <code>--subject-prompt</code>) - Temporary override for single use</li>
+<li><strong>Local <code>.gim</code> directory</strong> - Project-specific prompt files (if they exist)</li>
+<li><strong>Config directory</strong> - Global prompt files managed with <code>gim prompt</code></li>
+<li><strong>Built-in defaults</strong> - Default prompts included with the tool</li>
+</ol>
+<p>This allows you to:
+- Set up project-specific prompts in a <code>.gim</code> directory for consistent team usage
+- Override them temporarily with command-line arguments for special cases
+- Fall back to global prompts when no project-specific ones exist
+- Use built-in defaults as the final fallback</p>
+<h2 id="command-line-custom-prompts"><a class="toclink" href="#command-line-custom-prompts">Command-line Custom Prompts</a></h2>
+<p>You can also override prompts temporarily using command-line arguments without modifying files:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Use custom diff prompt for a single commit</span>
+gim<span class="w"> </span>--diff-prompt<span class="w"> </span><span class="s2">&quot;Summarize each file change focusing on security implications&quot;</span>
+
+<span class="c1"># Use custom subject prompt for a single commit  </span>
+gim<span class="w"> </span>--subject-prompt<span class="w"> </span><span class="s2">&quot;Generate a concise commit message following conventional commit format&quot;</span>
+
+<span class="c1"># Use both custom prompts together</span>
+gim<span class="w"> </span>--diff-prompt<span class="w"> </span><span class="s2">&quot;Analyze changes for performance impact&quot;</span><span class="w"> </span>--subject-prompt<span class="w"> </span><span class="s2">&quot;Create performance-focused commit message&quot;</span>
+
+<span class="c1"># Combine with other options</span>
+gim<span class="w"> </span>-a<span class="w"> </span>--diff-prompt<span class="w"> </span><span class="s2">&quot;Review changes for breaking changes&quot;</span><span class="w"> </span>--subject-prompt<span class="w"> </span><span class="s2">&quot;Generate breaking change commit&quot;</span>
+
+<span class="c1"># Test custom prompts with dry run</span>
+gim<span class="w"> </span>--dry<span class="w"> </span>--diff-prompt<span class="w"> </span><span class="s2">&quot;Test prompt&quot;</span><span class="w"> </span>--subject-prompt<span class="w"> </span><span class="s2">&quot;Test subject&quot;</span>
+</code></pre></div>
 
 
 
@@ -701,7 +850,7 @@ gim<span class="w"> </span>prompt<span class="w"> </span>--reset
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 27, 2025 06:40:13">June 27, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 2, 2026 09:02:24">February 2, 2026</span>
   </span>
 
     
