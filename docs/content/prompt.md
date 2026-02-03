@@ -37,10 +37,10 @@ You can create project-specific prompt files by creating a `.gim` directory in y
 mkdir .gim
 
 # Create project-specific diff prompt
-echo "Analyze changes for this project's specific needs" > .gim/diff_prompt
+echo "Analyze changes for this project's specific needs" > .gim/diff_prompt.txt
 
 # Create project-specific subject prompt  
-echo "Generate commit messages following our team's conventions" > .gim/subject_prompt
+echo "Generate commit messages following our team's conventions" > .gim/subject_prompt.txt
 ```
 
 ### File Structure
@@ -49,8 +49,8 @@ echo "Generate commit messages following our team's conventions" > .gim/subject_
 your-project/
 ├── .git/
 ├── .gim/
-│   ├── diff_prompt      # Custom diff analysis prompt
-│   └── subject_prompt   # Custom commit message prompt
+│   ├── diff_prompt.txt      # Custom diff analysis prompt
+│   └── subject_prompt.txt   # Custom commit message prompt
 ├── src/
 └── ...
 ```
