@@ -4,6 +4,7 @@ use std::{fs, io, path::PathBuf, process::Command};
 
 use crate::config::constants::{DIFF_PROMPT_FILE, SUBJECT_PROMPT_FILE};
 use crate::core::git;
+use crate::utils::output;
 
 fn file_dirs() -> io::Result<PathBuf> {
     directory::config_dir()
@@ -16,7 +17,7 @@ fn get_local_gim_prompt_files() -> Option<(PathBuf, PathBuf)> {
         if gim_dir.is_dir() {
             let diff_prompt_path = gim_dir.join(DIFF_PROMPT_FILE);
             let subject_prompt_path = gim_dir.join(SUBJECT_PROMPT_FILE);
-            
+
             // Check if at least one of the prompt files exists
             if diff_prompt_path.exists() || subject_prompt_path.exists() {
                 return Some((diff_prompt_path, subject_prompt_path));
@@ -86,24 +87,34 @@ fn trim_subject_prompt() -> String {
 pub fn get_diff_prompt(custom_prompt: Option<&str>) -> String {
     // If custom prompt is provided, use it directly
     if let Some(custom) = custom_prompt {
+        output::print_verbose("Using custom diff prompt from command line argument");
         return custom.to_string();
     }
-    
+
     let trimmed = trim_diff_prompt();
-    
+
     // First, check for local .gim directory
     if let Some((local_diff_path, _)) = get_local_gim_prompt_files() {
         if local_diff_path.exists() {
             match fs::read_to_string(&local_diff_path) {
-                Ok(content) => return content,
+                Ok(content) => {
+                    output::print_verbose(&format!(
+                        "Using diff prompt from local .gim directory: {}",
+                        local_diff_path.display()
+                    ));
+                    return content;
+                }
                 Err(e) => {
-                    eprintln!("Failed to read diff prompt from local .gim directory: {}", e);
+                    eprintln!(
+                        "Failed to read diff prompt from local .gim directory: {}",
+                        e
+                    );
                     // Continue to fallback to config directory
                 }
             }
         }
     }
-    
+
     // Fallback to config directory
     let path = match file_dirs() {
         Ok(p) => p.join(DIFF_PROMPT_FILE),
@@ -114,16 +125,24 @@ pub fn get_diff_prompt(custom_prompt: Option<&str>) -> String {
     };
 
     if !path.exists() {
-        if let Err(e) = fs::write(&path, trimmed.clone()) {
-            eprintln!("Failed to write diff prompt to file: {}", e);
-        }
+        output::print_verbose("Using built-in default diff prompt");
         return trimmed;
     }
 
-    fs::read_to_string(path).unwrap_or_else(|e| {
-        eprintln!("Failed to read diff prompt from file: {}", e);
-        trimmed
-    })
+    match fs::read_to_string(&path) {
+        Ok(content) => {
+            output::print_verbose(&format!(
+                "Using diff prompt from config directory: {}",
+                path.display()
+            ));
+            content
+        }
+        Err(e) => {
+            eprintln!("Failed to read diff prompt from file: {}", e);
+            output::print_verbose("Using built-in default diff prompt");
+            trimmed
+        }
+    }
 }
 
 /// Returns the subject prompt string, reading from local .gim directory first if available,
@@ -140,24 +159,34 @@ pub fn get_diff_prompt(custom_prompt: Option<&str>) -> String {
 pub fn get_subject_prompt(custom_prompt: Option<&str>) -> String {
     // If custom prompt is provided, use it directly
     if let Some(custom) = custom_prompt {
+        output::print_verbose("Using custom subject prompt from command line argument");
         return custom.to_string();
     }
-    
+
     let trimmed = trim_subject_prompt();
-    
+
     // First, check for local .gim directory
     if let Some((_, local_subject_path)) = get_local_gim_prompt_files() {
         if local_subject_path.exists() {
             match fs::read_to_string(&local_subject_path) {
-                Ok(content) => return content,
+                Ok(content) => {
+                    output::print_verbose(&format!(
+                        "Using subject prompt from local .gim directory: {}",
+                        local_subject_path.display()
+                    ));
+                    return content;
+                }
                 Err(e) => {
-                    eprintln!("Failed to read subject prompt from local .gim directory: {}", e);
+                    eprintln!(
+                        "Failed to read subject prompt from local .gim directory: {}",
+                        e
+                    );
                     // Continue to fallback to config directory
                 }
             }
         }
     }
-    
+
     // Fallback to config directory
     let path = match file_dirs() {
         Ok(p) => p.join(SUBJECT_PROMPT_FILE),
@@ -168,16 +197,24 @@ pub fn get_subject_prompt(custom_prompt: Option<&str>) -> String {
     };
 
     if !path.exists() {
-        if let Err(e) = fs::write(&path, trimmed.clone()) {
-            eprintln!("Failed to write subject prompt to file: {}", e);
-        }
+        output::print_verbose("Using built-in default subject prompt");
         return trimmed;
     }
 
-    fs::read_to_string(path).unwrap_or_else(|e| {
-        eprintln!("Failed to read subject prompt from file: {}", e);
-        trimmed
-    })
+    match fs::read_to_string(&path) {
+        Ok(content) => {
+            output::print_verbose(&format!(
+                "Using subject prompt from config directory: {}",
+                path.display()
+            ));
+            content
+        }
+        Err(e) => {
+            eprintln!("Failed to read subject prompt from file: {}", e);
+            output::print_verbose("Using built-in default subject prompt");
+            trimmed
+        }
+    }
 }
 
 /// Deletes the prompt files.
@@ -207,9 +244,7 @@ pub fn open_config_directory() -> io::Result<()> {
     let config_dir = directory::config_dir()?;
     // Open the directory with default file manager
     if cfg!(target_os = "macos") {
-        Command::new("open")
-            .arg(&config_dir)
-            .status()?;
+        Command::new("open").arg(&config_dir).status()?;
     } else if cfg!(target_os = "windows") {
         Command::new("explorer").arg(&config_dir).status()?;
     } else {
@@ -283,8 +318,9 @@ pub fn handle_prompt_command(
                     {
                         return Err(std::io::Error::new(
                             std::io::ErrorKind::NotFound,
-                            "Failed to open file manager. Please specify an editor with --editor"
-                        ).into());
+                            "Failed to open file manager. Please specify an editor with --editor",
+                        )
+                        .into());
                     }
                 }
             }
