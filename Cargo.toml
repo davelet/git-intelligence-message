@@ -1,11 +1,12 @@
 [package]
 name = "git-intelligence-message"
-version = "2.0.0"
+version = "2.1.0"
 edition = "2024"
 description = "An advanced Git commit message generation utility with AI assistance"
 authors = ["Sheldon.Wei<sheldon.sh.hb@gmail.com>"]
 license = "MIT"
 repository = "https://github.com/davelet/git-intelligence-message"
+homepage = "https://git-intelligence-message.pages.dev/"
 readme = "README.md"
 keywords = ["git", "commit", "ai", "cli"]
 categories = ["command-line-utilities"]
@@ -15,6 +16,11 @@ opt-level = 3
 lto = true
 codegen-units = 1
 panic = "abort"
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
 
 [target.'cfg(windows)'.rustflags]
 rustflags = ["-C", "target-feature=+crt-static"]
