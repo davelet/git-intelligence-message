@@ -1,5 +1,5 @@
 use cli::{GimCli, GimCommands};
-use commands::{ai as commands_ai, config as commands_config, commit, prompt, update};
+use commands::{ai as commands_ai, commit, config as commands_config, prompt, update};
 use core::{ai::client, diff, git};
 use gim_config::config::get_config;
 use std::env;
@@ -21,7 +21,8 @@ async fn main() {
     let start_time = std::time::Instant::now();
     // Start update reminder check asynchronously in background
     // Skip if --dry flag is passed or if this is the update subcommand
-    let update_check_handle = if !cli.dry && env::args().nth(1).map_or(true, |arg| arg != "update") {
+    let update_check_handle = if !cli.dry && env::args().nth(1).map_or(true, |arg| arg != "update")
+    {
         Some(tokio::spawn(update::check_update_reminder_async()))
     } else {
         None
@@ -78,9 +79,7 @@ async fn run_cli(cli: &GimCli, mut config: toml::Value) -> Result<(), Box<dyn st
                             eprintln!("Error: --interval must be a positive integer");
                             break 'interval;
                         }
-                        if let Err(e) =
-                            update::set_try_interval((*interval).try_into().unwrap())
-                        {
+                        if let Err(e) = update::set_try_interval((*interval).try_into().unwrap()) {
                             eprintln!("Failed to set try interval: {}", e);
                             break 'interval;
                         }
@@ -102,7 +101,9 @@ async fn run_cli(cli: &GimCli, mut config: toml::Value) -> Result<(), Box<dyn st
         }) => {
             if *reset {
                 if *edit || prompt.is_some() || editor.is_some() {
-                    utils::output::print_warning("--edit, --prompt or --editor will be ignored when --reset provided");
+                    utils::output::print_warning(
+                        "--edit, --prompt or --editor will be ignored when --reset provided",
+                    );
                 }
                 // delete the 2 files
                 if let Err(e) = prompt::delete_prompt_files() {
@@ -173,6 +174,7 @@ async fn run_cli(cli: &GimCli, mut config: toml::Value) -> Result<(), Box<dyn st
         }
         Some(GimCommands::Config {
             lines_limit,
+            max_files,
             show_location,
         }) => {
             if *show_location {
@@ -186,6 +188,12 @@ async fn run_cli(cli: &GimCli, mut config: toml::Value) -> Result<(), Box<dyn st
             }
             if let Some(lines_limit) = lines_limit {
                 if let Err(e) = commands_config::set_lines_limit(*lines_limit) {
+                    eprintln!("Error: {}", e);
+                    std::process::exit(1);
+                }
+            }
+            if let Some(max_files) = max_files {
+                if let Err(e) = commands_config::set_max_diff_files(*max_files) {
                     eprintln!("Error: {}", e);
                     std::process::exit(1);
                 }
@@ -204,9 +212,16 @@ async fn run_cli(cli: &GimCli, mut config: toml::Value) -> Result<(), Box<dyn st
     // Get git status
     let changes: Vec<String> = git::get_git_status(cli.auto_add);
 
+    // Determine max_files value: CLI arg > config file > default
+    let max_files = cli
+        .max_files
+        .unwrap_or_else(|| commands_config::get_max_diff_files());
+    utils::output::print_verbose(&format!("Using max_files limit: {}", max_files));
+
     // Build diff content
     let changes_ref: Vec<&str> = changes.iter().map(|s| s.as_str()).collect();
-    let diff_content = diff::build_diff_content(cli.auto_add, &changes_ref, cli.overwrite);
+    let diff_content =
+        diff::build_diff_content(cli.auto_add, &changes_ref, cli.overwrite, max_files);
 
     if diff_content.is_empty() {
         utils::output::print_normal("No changes to commit.");
@@ -215,9 +230,10 @@ async fn run_cli(cli: &GimCli, mut config: toml::Value) -> Result<(), Box<dyn st
 
     // DRY RUN LOGIC
     if cli.dry {
-        utils::output::print_normal(
-            &format!("\n--- DRY RUN ---\nContent to be sent to AI:\n{}", diff_content)
-        );
+        utils::output::print_normal(&format!(
+            "\n--- DRY RUN ---\nContent to be sent to AI:\n{}",
+            diff_content
+        ));
         return Ok(());
     }
 

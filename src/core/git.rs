@@ -1,5 +1,5 @@
-use std::process::Command;
 use std::path::PathBuf;
+use std::process::Command;
 
 use crate::utils::output;
 
@@ -48,10 +48,7 @@ pub fn get_git_status(auto_add: bool) -> Vec<String> {
         .args([
             "status",
             "-s",
-            &format!(
-                "--untracked-files={}",
-                if auto_add { "all" } else { "no" }
-            ),
+            &format!("--untracked-files={}", if auto_add { "all" } else { "no" }),
         ])
         .output()
         .expect("Failed to get git status");
@@ -112,6 +109,49 @@ pub fn get_staged_diff() -> String {
     String::from_utf8_lossy(&full_diff_output.stdout).to_string()
 }
 
+/// Gets the numstat for staged changes.
+///
+/// # Returns
+///
+/// * `String` containing the numstat output (lines added/deleted per file).
+pub fn get_staged_numstat() -> String {
+    let numstat_output = Command::new("git")
+        .args(["diff", "--cached", "--numstat"])
+        .output()
+        .expect("Failed to get git diff --cached --numstat");
+
+    output::print_verbose("Run 'git diff --cached --numstat'");
+
+    String::from_utf8_lossy(&numstat_output.stdout).to_string()
+}
+
+/// Gets the diff for specific files in staging area.
+///
+/// # Arguments
+///
+/// * `files` - List of file paths to get diff for.
+///
+/// # Returns
+///
+/// * `String` containing the diff output.
+pub fn get_staged_diff_for_files(files: &[String]) -> String {
+    let mut args = vec!["diff", "--cached", "--diff-filter=AM", "--"];
+    let file_refs: Vec<&str> = files.iter().map(|s| s.as_str()).collect();
+    args.extend(file_refs);
+
+    let diff_output = Command::new("git")
+        .args(&args)
+        .output()
+        .expect("Failed to get git diff for specific files");
+
+    output::print_verbose(&format!(
+        "Run 'git diff --cached --diff-filter=AM -- {:?}'",
+        files
+    ));
+
+    String::from_utf8_lossy(&diff_output.stdout).to_string()
+}
+
 /// Gets the name-status of the last commit.
 ///
 /// # Returns
@@ -140,6 +180,49 @@ pub fn get_last_commit_diff() -> String {
         .expect("Failed to get git show --diff-filter=AM");
 
     output::print_verbose("Run 'git show --pretty=format: --diff-filter=AM HEAD'");
+
+    String::from_utf8_lossy(&show_diff_output.stdout).to_string()
+}
+
+/// Gets the numstat for the last commit.
+///
+/// # Returns
+///
+/// * `String` containing the numstat output.
+pub fn get_last_commit_numstat() -> String {
+    let show_numstat_output = Command::new("git")
+        .args(["show", "--pretty=format:", "--numstat", "HEAD"])
+        .output()
+        .expect("Failed to get git show --numstat");
+
+    output::print_verbose("Run 'git show --pretty=format: --numstat HEAD'");
+
+    String::from_utf8_lossy(&show_numstat_output.stdout).to_string()
+}
+
+/// Gets the diff for specific files in the last commit.
+///
+/// # Arguments
+///
+/// * `files` - List of file paths to get diff for.
+///
+/// # Returns
+///
+/// * `String` containing the diff output.
+pub fn get_last_commit_diff_for_files(files: &[String]) -> String {
+    let mut args = vec!["show", "--pretty=format:", "--diff-filter=AM", "HEAD", "--"];
+    let file_refs: Vec<&str> = files.iter().map(|s| s.as_str()).collect();
+    args.extend(file_refs);
+
+    let show_diff_output = Command::new("git")
+        .args(&args)
+        .output()
+        .expect("Failed to get git show for specific files");
+
+    output::print_verbose(&format!(
+        "Run 'git show --pretty=format: --diff-filter=AM HEAD -- {:?}'",
+        files
+    ));
 
     String::from_utf8_lossy(&show_diff_output.stdout).to_string()
 }

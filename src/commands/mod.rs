@@ -1,5 +1,5 @@
-pub mod update;
-pub mod prompt;
 pub mod ai;
-pub mod config;
 pub mod commit;
+pub mod config;
+pub mod prompt;
+pub mod update;

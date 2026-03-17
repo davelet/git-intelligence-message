@@ -38,6 +38,10 @@ pub struct GimCli {
     /// Custom subject prompt to override the default
     #[arg(long)]
     pub subject_prompt: Option<String>,
+
+    /// Maximum number of changed files to send to AI (overrides config)
+    #[arg(short = 'n', long)]
+    pub max_files: Option<usize>,
 }
 
 /// Enum representing all supported subcommands for the gim CLI.
@@ -101,6 +105,10 @@ pub enum GimCommands {
         /// Git commit changed lines limit
         #[arg(long)]
         lines_limit: Option<usize>,
+
+        /// Maximum number of changed files to send to AI
+        #[arg(long)]
+        max_files: Option<usize>,
 
         /// Print config file's location
         #[arg(long, default_value_t = false)]

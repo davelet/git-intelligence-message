@@ -33,6 +33,7 @@ gim -ap
 - `-t, --title <STRING>`: Specify the commit message title
 - `-a, --auto-add`: Automatically stage all modifications
 - `-p, --update`: Amend the most recent commit
+- `-n, --max-files <N>`: Maximum number of changed files to send to AI (overrides config, default: 10)
 - `-v, --verbose`: Show detailed information (will be suppressed in quiet mode)
 - `-q, --quiet`: Suppress normal output (quiet mode)
 - `--diff-prompt <STRING>`: Custom diff prompt to override the default AI prompt for analyzing changes
@@ -87,3 +88,40 @@ The prompts are used in the following priority order:
 4. **Built-in defaults** - Fallback prompts
 
 This allows you to have project-specific prompts in a `.gim` directory, but override them temporarily with command line arguments when needed.
+
+## Limiting Files Sent to AI (`--max-files` / `-n`)
+
+When you have many changed files, sending all of them to AI can be overwhelming and costly. The `--max-files` option limits how many files are included in the diff sent to AI.
+
+**Usage examples:**
+
+```bash
+# Limit to 5 most significant files
+gim -n 5
+
+# Combine with other options
+gim -a -n 3
+
+# Override config setting temporarily
+gim --max-files 20
+```
+
+**Smart File Selection:**
+
+When the number of changed files exceeds the limit, GIM uses intelligent selection:
+
+1. Files are ranked by the number of lines changed (additions + deletions)
+2. If code file changes exceed 50% of total changes, only code files are kept (config and doc files are filtered out)
+3. The top N most significant files are selected
+
+**Supported file types:**
+
+- **Code**: `.rs`, `.go`, `.py`, `.js`, `.ts`, `.java`, `.c`, `.cpp`, and many more
+- **Config**: `.xml`, `.toml`, `.yaml`, `.json`, `.ini`, `.env`, etc.
+- **Doc**: `.md`, `.txt`, `.rst`, `.adoc`, etc.
+
+**Priority Order:**
+
+1. **Command line argument** (`-n` / `--max-files`) - Highest priority
+2. **Config file** (`gim config --max-files <N>`)
+3. **Default value** (10 files)

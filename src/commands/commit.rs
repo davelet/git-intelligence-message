@@ -104,7 +104,7 @@ pub async fn generate_commit_message(
 pub fn execute_commit(subject: &str, message: &str, overwrite: bool) {
     if crate::core::git::git_commit(subject, message, overwrite) {
         output::print_normal(
-            "✅ Successfully committed changes! If you were discontent with the commit message and want to polish or revise it, run 'gim -p' or 'git commit --amend'"
+            "✅ Successfully committed changes! If you were discontent with the commit message and want to polish or revise it, run 'gim -p' or 'git commit --amend'",
         );
     } else {
         eprintln!("Error: Failed to commit changes");
@@ -121,7 +121,10 @@ pub fn execute_commit(subject: &str, message: &str, overwrite: bool) {
 /// # Returns
 ///
 /// * `Ok(())` if within limit, exits with error if exceeds.
-pub fn check_diff_limit(diff_content: &str, diff_limit: usize) -> Result<(), Box<dyn std::error::Error>> {
+pub fn check_diff_limit(
+    diff_content: &str,
+    diff_limit: usize,
+) -> Result<(), Box<dyn std::error::Error>> {
     if diff_content.lines().count() > diff_limit {
         eprintdoc!(
             r"
