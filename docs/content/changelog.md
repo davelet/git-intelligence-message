@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.1.1] - 2025-03-17
+
+- **Smart File Limiting**: Added `--max-files` / `-n` option to limit the number of changed files sent to AI
+  - Configurable via `gim config --max-files <N>` (default: 10)
+  - Intelligent file selection: prioritizes files with most changes
+  - Auto-filters to code files only when code changes exceed 50% of total
+  - Supports file type classification (Code, Config, Doc, Other)
+- Priority order: CLI argument > config file > default value
+
+
 ## [2.1.0] - 2026-02-12
 
 - **M Chip Support for Mac**: Release build for M chip Macs.

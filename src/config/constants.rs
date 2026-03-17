@@ -5,3 +5,4 @@ pub const SUBJECT_PROMPT_FILE: &str = "subject_prompt.txt";
 
 pub const CUSTOM_SECTION_NAME: &str = "user";
 pub const DIFF_SIZE_LIMIT: usize = 1000;
+pub const MAX_DIFF_FILES: usize = 10;

@@ -83,7 +83,10 @@ fn get_latest_version_by_homebrew() -> Result<Version, Box<dyn std::error::Error
     let output = Command::new("brew")
         .args(["info", "--json=v2", REPOSITORY])
         .output()?;
-    output::print_verbose(&format!("[background] run 'brew info --json=v2 {}'", REPOSITORY));
+    output::print_verbose(&format!(
+        "[background] run 'brew info --json=v2 {}'",
+        REPOSITORY
+    ));
 
     if !output.status.success() {
         return Err("Failed to fetch version information from Homebrew".into());
