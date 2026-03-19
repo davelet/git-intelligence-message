@@ -1,0 +1,14 @@
+[
+  {
+    "label": "Build & Debug",
+    "adapter": "CodeLLDB",
+    "build": {
+      "command": "cargo",
+      "args": ["run", "--", "--dry", "-v"]
+    },
+    "program": "$ZED_WORKTREE_ROOT/target/debug/gim",
+    "sourceLanguages": ["rust"],
+    "request": "launch",
+    "args": []
+  }
+]
