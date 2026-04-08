@@ -35,6 +35,7 @@ async fn main() {
         std::process::exit(1);
     }
     utils::output::print_normal("");
+    utils::output::print_promotion();
 
     // Give the background update check task a chance to complete
     if let Some(handle) = update_check_handle {

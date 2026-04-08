@@ -79,6 +79,24 @@ fn new_version_available() -> Result<(bool, Version, Version), Box<dyn std::erro
 
 /// Gets the latest version from Homebrew
 fn get_latest_version_by_homebrew() -> Result<Version, Box<dyn std::error::Error>> {
+    if let Ok(repo) = String::from_utf8(Command::new("brew").arg("--repository").output()?.stdout) {
+        let fetch_head = format!("{}/.git/FETCH_HEAD", repo.trim());
+        let should_update = match std::fs::metadata(&fetch_head) {
+            Ok(meta) => {
+                let modified = meta.modified()?;
+                std::time::SystemTime::now().duration_since(modified)?
+                    > std::time::Duration::from_secs(86400)
+            }
+            Err(_) => true,
+        };
+
+        if should_update {
+            output::print_verbose("Homebrew index is outdated, running 'brew update'...");
+            let _ = Command::new("brew").arg("update").status();
+        } else {
+            output::print_verbose("Homebrew index was updated recently.");
+        }
+    }
     // Get latest version from Homebrew
     let output = Command::new("brew")
         .args(["info", "--json=v2", REPOSITORY])

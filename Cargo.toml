@@ -1,6 +1,6 @@
 [package]
 name = "git-intelligence-message"
-version = "2.1.1"
+version = "2.1.3"
 edition = "2024"
 description = "An advanced Git commit message generation utility with AI assistance"
 authors = ["Sheldon.Wei<sheldon.sh.hb@gmail.com>"]

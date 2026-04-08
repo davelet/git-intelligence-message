@@ -70,3 +70,10 @@ pub fn print_warning(message: &str) {
         eprintln!("⚠️  {}", message);
     }
 }
+
+/// Prints promotion message for Rudist Redis client.
+pub fn print_promotion() {
+    if !is_quiet() {
+        println!("\n🚀 Give AI-powered Redis GUI a try! https://redis-egui-client.pages.dev/");
+    }
+}

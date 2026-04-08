@@ -99,7 +99,8 @@ fn select_files(changes: Vec<FileChange>, max_files: usize) -> Vec<String> {
             "Code changes ({} lines) exceed 50% of total ({} lines), filtering to code files only",
             code_lines, total_lines
         ));
-        changes.into_iter()
+        changes
+            .into_iter()
             .filter(|c| c.file_type == FileType::Code)
             .collect()
     } else {
@@ -115,14 +116,13 @@ fn select_files(changes: Vec<FileChange>, max_files: usize) -> Vec<String> {
 
     // Take top N files by lines changed if max_files is set
     if max_files > 0 {
-        filtered_changes.into_iter()
+        filtered_changes
+            .into_iter()
             .take(max_files)
             .map(|c| c.path)
             .collect()
     } else {
-        filtered_changes.into_iter()
-            .map(|c| c.path)
-            .collect()
+        filtered_changes.into_iter().map(|c| c.path).collect()
     }
 }
 
