@@ -111,12 +111,13 @@ gim --max-files 20
 When the number of changed files exceeds the limit, GIM uses intelligent selection:
 
 1. Files are ranked by the number of lines changed (additions + deletions)
-2. If code file changes exceed 50% of total changes, only code files are kept (config and doc files are filtered out)
+2. If Code + Unity file changes exceed 50% of total changes, only Code and Unity files are kept (config and doc files are filtered out)
 3. The top N most significant files are selected
 
 **Supported file types:**
 
 - **Code**: `.rs`, `.go`, `.py`, `.js`, `.ts`, `.java`, `.c`, `.cpp`, and many more
+- **Unity**: `.unity`, `.prefab`, `.asset`, `.shader`, `.mat`, `.anim`, etc. (`.meta` files are skipped)
 - **Config**: `.xml`, `.toml`, `.yaml`, `.json`, `.ini`, `.env`, etc.
 - **Doc**: `.md`, `.txt`, `.rst`, `.adoc`, etc.
 

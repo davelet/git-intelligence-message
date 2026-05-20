@@ -11,7 +11,7 @@ You can configure this parameter using `gim config --lines-limit <LINES_LIMIT>`.
 `max-files` is an integer that limits the maximum number of changed files to send to AI. When the number of changed files exceeds this limit, GIM will intelligently select the most significant files based on:
 
 1. **Lines changed**: Files with more changes are prioritized
-2. **File type filtering**: If code changes exceed 50% of total changes, only code files are included (filtering out config, docs, etc.)
+2. **File type filtering**: If Code + Unity changes exceed 50% of total changes, only Code and Unity files are included (filtering out config, docs, etc.)
 
 The default value is `10`.
 
@@ -34,6 +34,7 @@ gim --max-files 5
 **Supported file type classifications:**
 
 - **Code**: `.rs`, `.go`, `.py`, `.js`, `.ts`, `.java`, `.c`, `.cpp`, etc.
+- **Unity**: `.unity`, `.prefab`, `.asset`, `.shader`, `.mat`, `.anim`, etc. (`.meta` files are skipped)
 - **Config**: `.xml`, `.toml`, `.yaml`, `.json`, `.ini`, `.env`, etc.
 - **Doc**: `.md`, `.txt`, `.rst`, `.adoc`, etc.
 

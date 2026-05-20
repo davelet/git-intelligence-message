@@ -1,12 +1,20 @@
 # Changelog
 
+## [2.1.4] - 2026-05-20
+
+- **Unity File Support**: Added dedicated Unity file type classification
+  - New `Unity` file type for `.unity`, `.prefab`, `.asset`, `.shader`, `.mat`, `.anim`, etc.
+  - Skip `.meta` files (Unity GUID references) — no meaningful content for commit messages
+  - Unity files are now treated as important as Code files in the 50% filtering rule
+  - Added plugin support: `.aar`, `.framework`, `.dll`, `.inputactions`
+
 ## [2.1.1] - 2025-03-17
 
 - **Smart File Limiting**: Added `--max-files` / `-n` option to limit the number of changed files sent to AI
   - Configurable via `gim config --max-files <N>` (default: 10)
   - Intelligent file selection: prioritizes files with most changes
-  - Auto-filters to code files only when code changes exceed 50% of total
-  - Supports file type classification (Code, Config, Doc, Other)
+  - Auto-filters to Code + Unity files only when their changes exceed 50% of total
+  - Supports file type classification (Code, Unity, Config, Doc, Other)
 - Priority order: CLI argument > config file > default value
 
 

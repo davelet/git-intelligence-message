@@ -6,6 +6,7 @@ use std::collections::HashSet;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum FileType {
     Code,   // Programming language files
+    Unity,  // Unity engine files (scenes, prefabs, shaders, assets, etc.)
     Config, // Configuration files (xml, toml, yaml, json, etc.)
     Doc,    // Documentation files (md, txt, rst, etc.)
     Other,  // Other files
@@ -20,26 +21,41 @@ struct FileChange {
 }
 
 /// Classifies a file based on its extension.
-fn classify_file_type(path: &str) -> FileType {
+/// Returns None for files that should be skipped entirely (e.g., .meta).
+fn classify_file_type(path: &str) -> Option<FileType> {
     let extension = path.split('.').last().unwrap_or("").to_lowercase();
 
     match extension.as_str() {
+        // Unity engine files — scenes, prefabs, shaders, materials, animations, etc.
+        "unity" | "prefab" | "asset" | "mat" | "anim" | "controller" | "overridecontroller"
+        | "shader" | "shadergraph" | "cginc" | "hlsl" | "glslinc" | "compute" | "raytrace"
+        | "asmdef" | "asmref" | "mixer" | "brush" | "flare" | "mask" | "guiskin"
+        | "fontsettings" | "preset" | "rendertexture" | "cubemap" | "spriteatlas"
+        | "terrainlayer" | "lighting" | "physicmaterial" | "physicmaterial2d" | "tile"
+        | "palette" | "signal" | "playable" | "giparams"
+        | "inputactions"  // Input System action maps
+        | "aar" | "framework" | "dll"  // Native/managed plugins
+        => Some(FileType::Unity),
+
+        // Skip .meta files — Unity guid references, no meaningful content for commit messages
+        "meta" => None,
+
         // Code files
         "rs" | "go" | "py" | "js" | "ts" | "jsx" | "tsx" | "java" | "c" | "cpp" | "cc" | "h"
         | "hpp" | "cs" | "php" | "rb" | "swift" | "kt" | "scala" | "m" | "mm" | "dart" | "ex"
         | "exs" | "erl" | "hrl" | "clj" | "cljs" | "hs" | "ml" | "mli" | "fs" | "fsx" | "r"
         | "jl" | "lua" | "pl" | "pm" | "sh" | "bash" | "zsh" | "fish" | "vim" | "el" => {
-            FileType::Code
+            Some(FileType::Code)
         }
 
         // Config files
         "xml" | "toml" | "yaml" | "yml" | "json" | "ini" | "cfg" | "conf" | "config"
-        | "properties" | "env" | "lock" => FileType::Config,
+        | "properties" | "env" | "lock" => Some(FileType::Config),
 
         // Documentation files
-        "md" | "txt" | "rst" | "adoc" | "org" | "tex" => FileType::Doc,
+        "md" | "txt" | "rst" | "adoc" | "org" | "tex" => Some(FileType::Doc),
 
-        _ => FileType::Other,
+        _ => Some(FileType::Other),
     }
 }
 
@@ -65,13 +81,15 @@ fn parse_diff_stats(numstat: &str, name_status: &str) -> Vec<FileChange> {
             let lines_changed = added + deleted;
             let status = *status_map.get(&path).unwrap_or(&'M');
 
-            // Skip deleted files (they don't contribute to the diff content)
+            // Skip deleted files and files with no meaningful content (e.g., .meta)
             if status != 'D' && lines_changed > 0 {
-                changes.push(FileChange {
-                    path: path.clone(),
-                    lines_changed,
-                    file_type: classify_file_type(&path),
-                });
+                if let Some(file_type) = classify_file_type(&path) {
+                    changes.push(FileChange {
+                        path: path.clone(),
+                        lines_changed,
+                        file_type,
+                    });
+                }
             }
         }
     }
@@ -85,28 +103,28 @@ fn select_files(changes: Vec<FileChange>, max_files: usize) -> Vec<String> {
         return Vec::new();
     }
 
-    // Calculate total lines and code file lines
+    // Calculate total lines and important file lines (Code + Unity)
     let total_lines: usize = changes.iter().map(|c| c.lines_changed).sum();
-    let code_lines: usize = changes
+    let important_lines: usize = changes
         .iter()
-        .filter(|c| c.file_type == FileType::Code)
+        .filter(|c| c.file_type == FileType::Code || c.file_type == FileType::Unity)
         .map(|c| c.lines_changed)
         .sum();
 
-    // If code changes are more than 50%, only keep code files
-    let mut filtered_changes: Vec<FileChange> = if code_lines * 2 > total_lines {
+    // If Code + Unity changes are more than 50%, only keep Code and Unity files
+    let mut filtered_changes: Vec<FileChange> = if important_lines * 2 > total_lines {
         output::print_verbose(&format!(
-            "Code changes ({} lines) exceed 50% of total ({} lines), filtering to code files only",
-            code_lines, total_lines
+            "Code + Unity changes ({} lines) exceed 50% of total ({} lines), filtering to code and unity files only",
+            important_lines, total_lines
         ));
         changes
             .into_iter()
-            .filter(|c| c.file_type == FileType::Code)
+            .filter(|c| c.file_type == FileType::Code || c.file_type == FileType::Unity)
             .collect()
     } else {
         output::print_verbose(&format!(
-            "Code changes ({} lines) do not exceed 50% of total ({} lines), keeping all files",
-            code_lines, total_lines
+            "Code + Unity changes ({} lines) do not exceed 50% of total ({} lines), keeping all files",
+            important_lines, total_lines
         ));
         changes
     };
